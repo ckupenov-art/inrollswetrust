@@ -1,4 +1,4 @@
-// main.js – sketchy toilet roll pack (non-eye style, soft thick outline)
+// main.js – clean subtle style (no "eyes"), transparent background
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
@@ -34,7 +34,7 @@ const camDebugPanel = document.getElementById("camera-debug");
 // --------------------------------------
 
 const scene = new THREE.Scene();
-scene.background = null; // transparent
+scene.background = null; // transparent for PNG export
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -54,8 +54,8 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.enablePan = true;
 
-// Lighting – soft and simple
-scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+// Soft lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.82));
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
 dirLight.position.set(20, 30, 20);
@@ -97,10 +97,10 @@ function readParams() {
 }
 
 // --------------------------------------
-// Simple subtle paper noise for the sides
+// Subtle paper texture for the side
 // --------------------------------------
 
-function createPaperSideBumpTexture() {
+function createPaperSideTexture() {
   const size = 64;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
@@ -110,7 +110,7 @@ function createPaperSideBumpTexture() {
   const d = img.data;
 
   for (let i = 0; i < d.length; i += 4) {
-    const val = 225 + Math.random() * 10; // bright gray noise
+    const val = 235 + Math.random() * 8; // very light noise
     d[i] = d[i + 1] = d[i + 2] = val;
     d[i + 3] = 255;
   }
@@ -123,10 +123,10 @@ function createPaperSideBumpTexture() {
   return tex;
 }
 
-const paperSideTexture = createPaperSideBumpTexture();
+const paperSideTexture = createPaperSideTexture();
 
 // --------------------------------------
-// Sketch-style end texture (non-eye)
+// End texture (very soft, non-eye)
 // --------------------------------------
 
 let endTexture = null;
@@ -142,40 +142,38 @@ function createRollEndTexture(outerRadius, coreRadius) {
   const cx = size / 2;
   const cy = size / 2;
 
+  // Map radii to pixels
   const outerPix = size * 0.45;
   const corePix  = outerPix * (coreRadius / outerRadius);
-  const holePix  = corePix * 0.55; // hole still visible, but soft
+  const holePix  = corePix * 0.55;
 
-  // Background paper
-  ctx.fillStyle = "#f4f4f4";
+  // Paper disc
+  ctx.fillStyle = "#f3f3f3"; // light paper
   ctx.beginPath();
   ctx.arc(cx, cy, outerPix, 0, Math.PI * 2);
   ctx.fill();
 
-  // Subtle paper rings (light lines)
+  // Single very soft paper ring – just a little contour
+  ctx.strokeStyle = "rgba(215,215,215,0.6)";
   ctx.lineWidth = 1;
-  ctx.strokeStyle = "rgba(210,210,210,0.7)";
-  for (let i = 1; i <= 4; i++) {
-    const r = holePix + (outerPix - holePix) * (i / 5);
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
-  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, (outerPix + corePix) * 0.5, 0, Math.PI * 2);
+  ctx.stroke();
 
-  // Cardboard core ring
-  ctx.fillStyle = "#caa882"; // soft beige
+  // Cardboard ring – gentle beige, close to paper
+  ctx.fillStyle = "#d4b894";
   ctx.beginPath();
   ctx.arc(cx, cy, corePix, 0, Math.PI * 2);
   ctx.fill();
 
-  // Hole – light gray (NO EYE EFFECT)
-  ctx.fillStyle = "#c8c8c8";
+  // Hole – light gray, small
+  ctx.fillStyle = "#cccccc";
   ctx.beginPath();
   ctx.arc(cx, cy, holePix, 0, Math.PI * 2);
   ctx.fill();
 
-  // Soft but slightly thicker outline (your choice)
-  ctx.strokeStyle = "rgba(208,208,208,0.28)"; 
+  // Very soft outer outline – slightly thicker but pale
+  ctx.strokeStyle = "rgba(210,210,210,0.3)";
   ctx.lineWidth = 1.0;
   ctx.beginPath();
   ctx.arc(cx, cy, outerPix, 0, Math.PI * 2);
@@ -198,13 +196,13 @@ let endGeom       = null;
 
 const paperSideMaterial = new THREE.MeshStandardMaterial({
   color: 0xf7f7f7,
-  roughness: 0.55,
+  roughness: 0.6,
   metalness: 0.0,
   map: paperSideTexture
 });
 
 const seamMaterial = new THREE.MeshStandardMaterial({
-  color: 0xdedede,
+  color: 0xe0e0e0,
   roughness: 0.7,
   metalness: 0.0
 });
@@ -223,9 +221,11 @@ function updateGeometries(p) {
   const R_core  = (p.coreDiameterMm / 2) * MM;
   const L       = p.rollHeightMm * MM;
 
+  // Side cylinder (open ends), oriented along X
   paperSideGeom = new THREE.CylinderGeometry(R_outer, R_outer, L, 48, 1, true);
   paperSideGeom.rotateZ(Math.PI / 2);
 
+  // Seam ring
   const seamThickness = 0.4 * MM;
   seamGeom = new THREE.CylinderGeometry(
     R_outer * 1.01,
@@ -237,9 +237,11 @@ function updateGeometries(p) {
   );
   seamGeom.rotateZ(Math.PI / 2);
 
+  // End disc (flat) facing X
   endGeom = new THREE.CircleGeometry(R_outer, 64);
   endGeom.rotateY(Math.PI / 2);
 
+  // Refresh end texture
   const endTex = createRollEndTexture(R_outer, R_core);
   endMaterial.map = endTex;
   endMaterial.needsUpdate = true;
@@ -279,17 +281,20 @@ function generatePack() {
         const py = baseY   + layer * spacingY;
         const pz = offsetZ + row * spacingZ;
 
+        // Side paper tube
         const side = new THREE.Mesh(paperSideGeom, paperSideMaterial);
         side.castShadow = true;
         side.receiveShadow = true;
         side.position.set(px, py, pz);
 
+        // Seams
         const seamOffset = (L / 2) - (1.0 * MM);
         const seamFront = new THREE.Mesh(seamGeom, seamMaterial);
         const seamBack  = new THREE.Mesh(seamGeom, seamMaterial);
         seamFront.position.set(px + seamOffset, py, pz);
         seamBack.position.set(px - seamOffset, py, pz);
 
+        // Ends (very soft)
         const endFront = new THREE.Mesh(endGeom, endMaterial);
         endFront.position.set(px + L / 2 + 0.0001, py, pz);
 
@@ -322,7 +327,7 @@ function resetCamera() {
 }
 
 // --------------------------------------
-// PNG Export
+// PNG Export (transparent background)
 // --------------------------------------
 
 function exportPNG() {

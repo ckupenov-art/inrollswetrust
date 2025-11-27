@@ -1,38 +1,39 @@
-// js/main.js
-// Correct touching spacing for SIDEWAYS rolls + camera debug + PNG export
+// main.js – correct spacing + rollGap variable + PNG export + camera debug
 
-import * as THREE from 'three';
-import { OrbitControls } from 'https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from "three";
+import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
 
-// DOM references
-const container       = document.getElementById('scene-container');
-const countLabel      = document.getElementById('count-label');
-const rollsPerRowEl   = document.getElementById('rollsPerRowInput');
-const rowsPerLayerEl  = document.getElementById('rowsPerLayerInput');
-const layersEl        = document.getElementById('layersInput');
-const rollDiameterEl  = document.getElementById('rollDiameterInput');
-const coreDiameterEl  = document.getElementById('coreDiameterInput');
-const rollHeightEl    = document.getElementById('rollHeightInput');
-const totalRollsEl    = document.getElementById('total-rolls');
-const generateBtn     = document.getElementById('generateBtn');
-const resetCameraBtn  = document.getElementById('resetCameraBtn');
-const exportPngBtn    = document.getElementById('exportPngBtn');
+// DOM elements
+const container       = document.getElementById("scene-container");
+const countLabel      = document.getElementById("count-label");
+const rollsPerRowEl   = document.getElementById("rollsPerRowInput");
+const rowsPerLayerEl  = document.getElementById("rowsPerLayerInput");
+const layersEl        = document.getElementById("layersInput");
+const rollDiameterEl  = document.getElementById("rollDiameterInput");
+const coreDiameterEl  = document.getElementById("coreDiameterInput");
+const rollHeightEl    = document.getElementById("rollHeightInput");
+const rollGapEl       = document.getElementById("rollGapInput");
+const totalRollsEl    = document.getElementById("total-rolls");
 
-// Camera debug elements
-const camXEl  = document.getElementById('cam-x');
-const camYEl  = document.getElementById('cam-y');
-const camZEl  = document.getElementById('cam-z');
-const camTxEl = document.getElementById('cam-tx');
-const camTyEl = document.getElementById('cam-ty');
-const camTzEl = document.getElementById('cam-tz');
-const camDebugPanel = document.getElementById('camera-debug');
+const generateBtn     = document.getElementById("generateBtn");
+const resetCameraBtn  = document.getElementById("resetCameraBtn");
+const exportPngBtn    = document.getElementById("exportPngBtn");
 
-// -----------------------------------------------------------------------------
-// 1. Basic Three.js setup
-// -----------------------------------------------------------------------------
+// Camera debug UI
+const camXEl  = document.getElementById("cam-x");
+const camYEl  = document.getElementById("cam-y");
+const camZEl  = document.getElementById("cam-z");
+const camTxEl = document.getElementById("cam-tx");
+const camTyEl = document.getElementById("cam-ty");
+const camTzEl = document.getElementById("cam-tz");
+const camDebugPanel = document.getElementById("camera-debug");
+
+// --------------------------------------
+// Scene Setup
+// --------------------------------------
 
 const scene = new THREE.Scene();
-scene.background = null; // transparent scene
+scene.background = null; // transparent
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -44,294 +45,220 @@ const camera = new THREE.PerspectiveCamera(
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-// transparent clear color so PNG has transparency
 renderer.setClearColor(0x000000, 0);
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.enablePan = true; // unrestricted pan
+controls.enablePan = true;
 
-// Lights
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
-scene.add(ambientLight);
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
 dirLight.position.set(10, 20, 12);
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(1024, 1024);
 scene.add(dirLight);
 
-// Group to hold the entire pack
 const packGroup = new THREE.Group();
 scene.add(packGroup);
 
-// -----------------------------------------------------------------------------
-// 2. Helpers – reading inputs and constants
-// -----------------------------------------------------------------------------
+// --------------------------------------
+// Helpers
+// --------------------------------------
 
-const MM_TO_UNITS = 0.1; // 10 mm = 1 scene unit
-const EPSILON     = 0.01; // ~0.1 mm: tiny gap to avoid z-fighting
+const MM = 0.1;      // 10 mm = 1 unit
+const EPS = 0.01;    // ~0.1 mm safety
 
 function getInt(el, fallback) {
   const v = parseInt(el.value, 10);
   return Number.isFinite(v) && v > 0 ? v : fallback;
 }
+
 function getFloat(el, fallback) {
   const v = parseFloat(el.value);
-  return Number.isFinite(v) && v > 0 ? v : fallback;
+  return Number.isFinite(v) && v >= 0 ? v : fallback;
 }
 
 function readParams() {
-  const rollsPerRow  = getInt(rollsPerRowEl, 4);
-  const rowsPerLayer = getInt(rowsPerLayerEl, 3);
-  const layers       = getInt(layersEl, 2);
-
-  const rollDiameterMm = getFloat(rollDiameterEl, 120);
-  const coreDiameterMm = getFloat(coreDiameterEl, 45);
-  const rollHeightMm   = getFloat(rollHeightEl, 100);
-
   return {
-    rollsPerRow,
-    rowsPerLayer,
-    layers,
-    rollDiameterMm,
-    coreDiameterMm,
-    rollHeightMm,
+    rollsPerRow:  getInt(rollsPerRowEl, 4),
+    rowsPerLayer: getInt(rowsPerLayerEl, 3),
+    layers:       getInt(layersEl, 2),
+
+    rollDiameterMm: getFloat(rollDiameterEl, 120),
+    coreDiameterMm: getFloat(coreDiameterEl, 45),
+    rollHeightMm:   getFloat(rollHeightEl, 100),
+
+    rollGapMm:      getFloat(rollGapEl, 1.0) // TEMPORARY visual gap
   };
 }
 
-// -----------------------------------------------------------------------------
-// 3. Geometries & materials
-// -----------------------------------------------------------------------------
+// --------------------------------------
+// Geometry creation
+// --------------------------------------
 
 let outerGeometry = null;
 let coreGeometry  = null;
 
 const outerMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff,
-  roughness: 0.5,
-  metalness: 0.0,
+  roughness: 0.5
 });
 const coreMaterial = new THREE.MeshStandardMaterial({
   color: 0x9a7b5f,
-  roughness: 0.7,
-  metalness: 0.0,
+  roughness: 0.7
 });
 
-function updateGeometries(params) {
+function updateGeometries(p) {
   if (outerGeometry) outerGeometry.dispose();
   if (coreGeometry)  coreGeometry.dispose();
 
-  const rollRadius = (params.rollDiameterMm / 2) * MM_TO_UNITS;
-  const coreRadius = (params.coreDiameterMm / 2) * MM_TO_UNITS;
-  const rollHeight = params.rollHeightMm * MM_TO_UNITS;
+  const R = (p.rollDiameterMm / 2) * MM;
+  const coreR = (p.coreDiameterMm / 2) * MM;
+  const H = p.rollHeightMm * MM;
 
-  outerGeometry = new THREE.CylinderGeometry(
-    rollRadius,
-    rollRadius,
-    rollHeight,
-    32
-  );
-  coreGeometry = new THREE.CylinderGeometry(
-    coreRadius,
-    coreRadius,
-    rollHeight * 1.02,
-    24
-  );
+  outerGeometry = new THREE.CylinderGeometry(R, R, H, 32);
+  coreGeometry  = new THREE.CylinderGeometry(coreR, coreR, H * 1.02, 24);
 }
 
-// -----------------------------------------------------------------------------
-// 4. Pack generation – TOUCHING spacing for SIDEWAYS rolls
-// -----------------------------------------------------------------------------
+// --------------------------------------
+// Pack generation
+// --------------------------------------
 
 function clearPack() {
-  while (packGroup.children.length > 0) {
-    const obj = packGroup.children[0];
-    packGroup.remove(obj);
+  while (packGroup.children.length) {
+    packGroup.remove(packGroup.children[0]);
   }
 }
 
 function generatePack() {
-  const params = readParams();
-  updateGeometries(params);
+  const p = readParams();
+  updateGeometries(p);
 
-  const { rollsPerRow, rowsPerLayer, layers } = params;
+  const L = p.rollHeightMm * MM;    // length (X)
+  const D = p.rollDiameterMm * MM;  // diameter (Y,Z)
+  const G = p.rollGapMm * MM;       // visual gap
 
-  const rollRadius   = (params.rollDiameterMm / 2) * MM_TO_UNITS;
-  const rollDiameter = params.rollDiameterMm * MM_TO_UNITS;
-  const rollLength   = params.rollHeightMm   * MM_TO_UNITS; // along X when sideways
+  // SIDEWAYS rolls
+  const spacingX = L + G + EPS; // main adjustable spacing
+  const spacingY = D + EPS;
+  const spacingZ = D + EPS;
 
-  // SIDEWAYS rolls (rotation.z = PI/2)
-  //  X axis → roll length (height)
-  //  Y axis → roll diameter
-  //  Z axis → roll diameter
+  const packWidth  = (p.rollsPerRow  - 1) * spacingX + L;
+  const packDepth  = (p.rowsPerLayer - 1) * spacingZ + D;
+  const packHeight = (p.layers       - 1) * spacingY + D;
 
-  const spacingX = rollLength   + EPSILON;   // along length
-  const spacingY = rollDiameter + EPSILON;   // stacked layers
-  const spacingZ = rollDiameter + EPSILON;   // rows front/back
-
-  // Total pack size (for camera framing)
-  const packWidth  = (rollsPerRow  - 1) * spacingX + rollLength;
-  const packDepth  = (rowsPerLayer - 1) * spacingZ + rollDiameter;
-  const packHeight = (layers       - 1) * spacingY + rollDiameter;
-
-  // Center pack around (0,0,0)
-  const offsetX = -((rollsPerRow  - 1) * spacingX) / 2;
-  const offsetZ = -((rowsPerLayer - 1) * spacingZ) / 2;
-  const baseY   = -((layers - 1) * spacingY) / 2;
+  const offsetX = -((p.rollsPerRow  - 1) * spacingX) / 2;
+  const offsetZ = -((p.rowsPerLayer - 1) * spacingZ) / 2;
+  const baseY   = -((p.layers - 1) * spacingY) / 2;
 
   clearPack();
 
-  for (let layer = 0; layer < layers; layer++) {
-    for (let row = 0; row < rowsPerLayer; row++) {
-      for (let col = 0; col < rollsPerRow; col++) {
-        const x = offsetX + col * spacingX;
-        const z = offsetZ + row * spacingZ;
-        const y = baseY + layer * spacingY;
+  for (let y = 0; y < p.layers; y++) {
+    for (let z = 0; z < p.rowsPerLayer; z++) {
+      for (let x = 0; x < p.rollsPerRow; x++) {
 
-        // Outer roll – sideways (axis along X)
+        const px = offsetX + x * spacingX;
+        const py = baseY   + y * spacingY;
+        const pz = offsetZ + z * spacingZ;
+
         const roll = new THREE.Mesh(outerGeometry, outerMaterial);
         roll.castShadow = true;
-        roll.receiveShadow = true;
-        roll.position.set(x, y, z);
         roll.rotation.z = Math.PI / 2;
+        roll.position.set(px, py, pz);
 
-        // Core – same orientation & position
         const core = new THREE.Mesh(coreGeometry, coreMaterial);
-        core.castShadow = false;
-        core.receiveShadow = false;
-        core.position.set(x, y, z);
-        core.rotation.z = roll.rotation.z;
+        core.rotation.z = Math.PI / 2;
+        core.position.set(px, py, pz);
 
-        packGroup.add(roll);
-        packGroup.add(core);
+        packGroup.add(roll, core);
       }
     }
   }
 
-  const total = rollsPerRow * rowsPerLayer * layers;
-  if (totalRollsEl) totalRollsEl.textContent = total.toString();
-  if (countLabel)   countLabel.textContent   = `${total} rolls`;
+  const total = p.rollsPerRow * p.rowsPerLayer * p.layers;
+  totalRollsEl.textContent = total;
+  countLabel.textContent = `${total} rolls`;
 
-  frameCameraOnPack(packWidth, packHeight, packDepth);
+  frameCamera(packWidth, packHeight, packDepth);
 }
 
-// -----------------------------------------------------------------------------
-// 5. Camera framing & reset
-// -----------------------------------------------------------------------------
+// --------------------------------------
+// Camera control
+// --------------------------------------
 
-function frameCameraOnPack(width, height, depth) {
-  const maxDim   = Math.max(width, height, depth);
-  const distance = maxDim * 2.2; // tweak multiplier if you want closer/further
+function frameCamera(w, h, d) {
+  const maxD = Math.max(w, h, d);
+  const dist = maxD * 2.2;
 
-  camera.position.set(distance, distance * 0.75, distance);
-  controls.target.set(0, 0, 0);
+  camera.position.set(dist, dist * 0.75, dist);
+  controls.target.set(0,0,0);
   controls.update();
 }
 
 function resetCamera() {
-  const params = readParams();
-
-  const rollDiameter = params.rollDiameterMm * MM_TO_UNITS;
-  const rollLength   = params.rollHeightMm   * MM_TO_UNITS;
-
-  const spacingX = rollLength   + EPSILON;
-  const spacingY = rollDiameter + EPSILON;
-  const spacingZ = rollDiameter + EPSILON;
-
-  const packWidth  = (params.rollsPerRow  - 1) * spacingX + rollLength;
-  const packDepth  = (params.rowsPerLayer - 1) * spacingZ + rollDiameter;
-  const packHeight = (params.layers       - 1) * spacingY + rollDiameter;
-
-  frameCameraOnPack(packWidth, packHeight, packDepth);
+  generatePack();
 }
 
-// -----------------------------------------------------------------------------
-// 6. PNG export (transparent, hides camera debug panel)
-// -----------------------------------------------------------------------------
+// --------------------------------------
+// PNG Export
+// --------------------------------------
 
 function exportPNG() {
-  let prevDisplay = '';
-  if (camDebugPanel) {
-    prevDisplay = camDebugPanel.style.display || '';
-    camDebugPanel.style.display = 'none';
-  }
+  camDebugPanel.style.display = "none";
 
   renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL("image/png");
 
-  const dataURL = renderer.domElement.toDataURL('image/png');
-  const link = document.createElement('a');
-  link.href = dataURL;
-  link.download = 'toilet-pack.png';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "toilet-pack.png";
+  a.click();
 
-  if (camDebugPanel) {
-    camDebugPanel.style.display = prevDisplay;
-  }
+  camDebugPanel.style.display = "";
 }
 
-// -----------------------------------------------------------------------------
-// 7. Camera debug panel update
-// -----------------------------------------------------------------------------
+// --------------------------------------
+// Camera debug panel update
+// --------------------------------------
 
 function updateCameraDebug() {
-  if (!camXEl || !camYEl || !camZEl || !camTxEl || !camTyEl || !camTzEl) return;
+  camXEl.textContent  = camera.position.x.toFixed(2);
+  camYEl.textContent  = camera.position.y.toFixed(2);
+  camZEl.textContent  = camera.position.z.toFixed(2);
 
-  const pos = camera.position;
-  const tgt = controls.target;
-
-  camXEl.textContent  = pos.x.toFixed(2);
-  camYEl.textContent  = pos.y.toFixed(2);
-  camZEl.textContent  = pos.z.toFixed(2);
-  camTxEl.textContent = tgt.x.toFixed(2);
-  camTyEl.textContent = tgt.y.toFixed(2);
-  camTzEl.textContent = tgt.z.toFixed(2);
+  camTxEl.textContent = controls.target.x.toFixed(2);
+  camTyEl.textContent = controls.target.y.toFixed(2);
+  camTzEl.textContent = controls.target.z.toFixed(2);
 }
 
-// -----------------------------------------------------------------------------
-// 8. Event wiring & initial generation
-// -----------------------------------------------------------------------------
+// --------------------------------------
+// Events
+// --------------------------------------
 
-if (generateBtn) {
-  generateBtn.addEventListener('click', () => {
-    generatePack();
-  });
-}
+generateBtn.onclick = generatePack;
+resetCameraBtn.onclick = resetCamera;
+exportPngBtn.onclick = exportPNG;
 
-if (resetCameraBtn) {
-  resetCameraBtn.addEventListener('click', () => {
-    resetCamera();
-  });
-}
-
-if (exportPngBtn) {
-  exportPngBtn.addEventListener('click', () => {
-    exportPNG();
-  });
-}
-
-// Initial pack
 generatePack();
 
-// Resize handler
-window.addEventListener('resize', () => {
-  const width  = window.innerWidth;
-  const height = window.innerHeight;
-  camera.aspect = width / height;
+window.onresize = () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(width, height);
-});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+};
 
-// Animation loop
+// --------------------------------------
+// Render loop
+// --------------------------------------
+
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
   updateCameraDebug();
   renderer.render(scene, camera);
 }
+
 animate();

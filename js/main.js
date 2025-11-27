@@ -191,6 +191,9 @@ function clearPack() {
 }
 
 function generatePack() {
+
+  console.log("paper openEnded:", paperGeom.parameters.openEnded);
+  
   const p = readParams();
   updateGeometries(p);
 

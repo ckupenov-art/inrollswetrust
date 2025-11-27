@@ -1,4 +1,4 @@
-// WORKING STABLE VERSION — before roll-end modifications
+// WORKING STABLE VERSION — debug version to test openEnded value
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
@@ -163,7 +163,7 @@ function updateGeometries(p) {
   const L       = p.rollHeightMm * MM;
 
   // This version has closed ends (original)
-  paperGeom = new THREE.CylinderGeometry(R_outer, R_outer, L, 64, 1, true);
+  paperGeom = new THREE.CylinderGeometry(R_outer, R_outer, L, 64, 1, false);
   paperGeom.rotateZ(Math.PI / 2);
 
   const coreLength = L * 0.85;
@@ -192,8 +192,9 @@ function clearPack() {
 
 function generatePack() {
 
-  console.log("paper openEnded:", paperGeom.parameters.openEnded);
-  
+  // ➤ DEBUG LINE HERE (safe placement)
+  console.log("paper openEnded:", paperGeom?.parameters?.openEnded);
+
   const p = readParams();
   updateGeometries(p);
 

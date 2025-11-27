@@ -1,5 +1,5 @@
 // js/main.js
-// Step 2: Toilet pack generator with UI, sideways rolls, no ground, tight spacing
+// Touching spacing in all directions + camera debug panel + PNG export
 
 import * as THREE from 'three';
 import { OrbitControls } from 'https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js';
@@ -18,13 +18,21 @@ const generateBtn     = document.getElementById('generateBtn');
 const resetCameraBtn  = document.getElementById('resetCameraBtn');
 const exportPngBtn    = document.getElementById('exportPngBtn');
 
+// Camera debug elements
+const camXEl  = document.getElementById('cam-x');
+const camYEl  = document.getElementById('cam-y');
+const camZEl  = document.getElementById('cam-z');
+const camTxEl = document.getElementById('cam-tx');
+const camTyEl = document.getElementById('cam-ty');
+const camTzEl = document.getElementById('cam-tz');
+const camDebugPanel = document.getElementById('camera-debug');
+
 // -----------------------------------------------------------------------------
 // 1. Basic Three.js setup
 // -----------------------------------------------------------------------------
 
 const scene = new THREE.Scene();
-// Transparent background in renderer; page background comes from CSS
-scene.background = null;
+scene.background = null; // transparent scene
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -36,7 +44,7 @@ const camera = new THREE.PerspectiveCamera(
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-// Transparent clear color for PNG export
+// Transparent clear color so PNG has transparency
 renderer.setClearColor(0x000000, 0);
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
@@ -44,7 +52,7 @@ container.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.enablePan = true; // P1: unrestricted pan
+controls.enablePan = true;
 
 // Lights
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
@@ -61,11 +69,13 @@ const packGroup = new THREE.Group();
 scene.add(packGroup);
 
 // -----------------------------------------------------------------------------
-// 2. Helpers – reading inputs and computing spacing
+// 2. Helpers – reading inputs and spacing
 // -----------------------------------------------------------------------------
 
-const MM_TO_UNITS = 0.1; // 10 mm = 1 Three.js unit
+const MM_TO_UNITS = 0.1;      // 10 mm = 1 scene unit
+const EPSILON     = 0.01;     // small extra to avoid z-fighting (~0.1 mm)
 
+// input readers
 function getInt(el, fallback) {
   const v = parseInt(el.value, 10);
   return Number.isFinite(v) && v > 0 ? v : fallback;
@@ -95,7 +105,7 @@ function readParams() {
 }
 
 // -----------------------------------------------------------------------------
-// 3. Roll geometries & materials (created per-update when dims change)
+// 3. Roll geometries & materials (recreated if dimensions change)
 // -----------------------------------------------------------------------------
 
 let outerGeometry = null;
@@ -107,13 +117,12 @@ const outerMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.0,
 });
 const coreMaterial = new THREE.MeshStandardMaterial({
-  color: 0x9a7b5f, // cardboard-ish
+  color: 0x9a7b5f,
   roughness: 0.7,
   metalness: 0.0,
 });
 
 function updateGeometries(params) {
-  // Dispose old geometries, if any
   if (outerGeometry) outerGeometry.dispose();
   if (coreGeometry)  coreGeometry.dispose();
 
@@ -136,14 +145,13 @@ function updateGeometries(params) {
 }
 
 // -----------------------------------------------------------------------------
-// 4. Pack generation
+// 4. Pack generation – touching spacing in X/Y/Z
 // -----------------------------------------------------------------------------
 
 function clearPack() {
   while (packGroup.children.length > 0) {
     const obj = packGroup.children[0];
     packGroup.remove(obj);
-    // Geometry/materials are shared, don't dispose here.
   }
 }
 
@@ -151,30 +159,26 @@ function generatePack() {
   const params = readParams();
   updateGeometries(params);
 
-  const rollsPerRow  = params.rollsPerRow;
-  const rowsPerLayer = params.rowsPerLayer;
-  const layers       = params.layers;
+  const { rollsPerRow, rowsPerLayer, layers } = params;
 
-  const rollRadius   = (params.rollDiameterMm / 2) * MM_TO_UNITS;
-  const rollHeight   = params.rollHeightMm * MM_TO_UNITS;
+  const rollRadius = (params.rollDiameterMm / 2) * MM_TO_UNITS;
+  const rollHeight = params.rollHeightMm * MM_TO_UNITS;
 
-  // Tight spacing – as requested
-  const spacingFactorXY = 1.01; // X/Z
-  const spacingFactorY  = 1.02; // Y
+  // TOUCHING SPACING:
+  // center-to-center spacing = size + tiny epsilon
+  const spacingX = params.rollDiameterMm * MM_TO_UNITS + EPSILON;
+  const spacingZ = params.rollDiameterMm * MM_TO_UNITS + EPSILON;
+  const spacingY = rollHeight + EPSILON;
 
-  const spacingX = (params.rollDiameterMm * MM_TO_UNITS) * spacingFactorXY;
-  const spacingZ = (params.rollDiameterMm * MM_TO_UNITS) * spacingFactorXY;
-  const spacingY = rollHeight * spacingFactorY;
-
-  // Compute total size of pack
-  const packWidth  = (rollsPerRow  - 1) * spacingX + rollRadius * 2;
-  const packDepth  = (rowsPerLayer - 1) * spacingZ + rollRadius * 2;
+  // Total pack size (approx) for camera framing
+  const packWidth  = (rollsPerRow  - 1) * spacingX + 2 * rollRadius;
+  const packDepth  = (rowsPerLayer - 1) * spacingZ + 2 * rollRadius;
   const packHeight = (layers       - 1) * spacingY + rollHeight;
 
   // Center pack around (0,0,0)
   const offsetX = -((rollsPerRow  - 1) * spacingX) / 2;
   const offsetZ = -((rowsPerLayer - 1) * spacingZ) / 2;
-  const baseY   = -packHeight / 2 + rollHeight / 2;
+  const baseY   = -((layers - 1) * spacingY) / 2;
 
   clearPack();
 
@@ -185,15 +189,14 @@ function generatePack() {
         const z = offsetZ + row * spacingZ;
         const y = baseY + layer * spacingY;
 
-        // Outer roll – sideways (R2)
+        // Outer roll – sideways (axis along X)
         const roll = new THREE.Mesh(outerGeometry, outerMaterial);
         roll.castShadow = true;
         roll.receiveShadow = true;
         roll.position.set(x, y, z);
-        // Cylinder axis is Y by default; rotate so axis points along X (sideways)
         roll.rotation.z = Math.PI / 2;
 
-        // Core
+        // Core – same orientation & position
         const core = new THREE.Mesh(coreGeometry, coreMaterial);
         core.castShadow = false;
         core.receiveShadow = false;
@@ -206,7 +209,6 @@ function generatePack() {
     }
   }
 
-  // Update total roll count in UI & header
   const total = rollsPerRow * rowsPerLayer * layers;
   if (totalRollsEl) totalRollsEl.textContent = total.toString();
   if (countLabel)   countLabel.textContent   = `${total} rolls`;
@@ -219,50 +221,79 @@ function generatePack() {
 // -----------------------------------------------------------------------------
 
 function frameCameraOnPack(width, height, depth) {
-  const maxDim  = Math.max(width, height, depth);
-  const radius  = maxDim * 0.6;
-  const distance = radius * 2.6;
+  const maxDim   = Math.max(width, height, depth);
+  const distance = maxDim * 2.2; // tweak multiplier if needed
 
-  camera.position.set(distance, distance * 0.8, distance);
+  camera.position.set(distance, distance * 0.75, distance);
   controls.target.set(0, 0, 0);
   controls.update();
 }
 
 function resetCamera() {
-  // Reframe using current pack bounds; approximate from last params
   const params = readParams();
-  const rollRadius   = (params.rollDiameterMm / 2) * MM_TO_UNITS;
-  const rollHeight   = params.rollHeightMm * MM_TO_UNITS;
-  const spacingFactorXY = 1.01;
-  const spacingFactorY  = 1.02;
-  const spacingX = (params.rollDiameterMm * MM_TO_UNITS) * spacingFactorXY;
-  const spacingZ = (params.rollDiameterMm * MM_TO_UNITS) * spacingFactorXY;
-  const spacingY = rollHeight * spacingFactorY;
-  const packWidth  = (params.rollsPerRow  - 1) * spacingX + rollRadius * 2;
-  const packDepth  = (params.rowsPerLayer - 1) * spacingZ + rollRadius * 2;
+  const rollRadius = (params.rollDiameterMm / 2) * MM_TO_UNITS;
+  const rollHeight = params.rollHeightMm * MM_TO_UNITS;
+
+  const spacingX = params.rollDiameterMm * MM_TO_UNITS + EPSILON;
+  const spacingZ = params.rollDiameterMm * MM_TO_UNITS + EPSILON;
+  const spacingY = rollHeight + EPSILON;
+
+  const packWidth  = (params.rollsPerRow  - 1) * spacingX + 2 * rollRadius;
+  const packDepth  = (params.rowsPerLayer - 1) * spacingZ + 2 * rollRadius;
   const packHeight = (params.layers       - 1) * spacingY + rollHeight;
+
   frameCameraOnPack(packWidth, packHeight, packDepth);
 }
 
 // -----------------------------------------------------------------------------
-// 6. PNG export (transparent background)
+// 6. PNG export (transparent, hides camera debug panel)
 // -----------------------------------------------------------------------------
 
 function exportPNG() {
-  // Ensure one fresh render before capturing
-  renderer.render(scene, camera);
-  const dataURL = renderer.domElement.toDataURL('image/png');
+  // Hide debug panel for export (E1)
+  let prevDisplay = '';
+  if (camDebugPanel) {
+    prevDisplay = camDebugPanel.style.display || '';
+    camDebugPanel.style.display = 'none';
+  }
 
+  // Render a fresh frame
+  renderer.render(scene, camera);
+
+  const dataURL = renderer.domElement.toDataURL('image/png');
   const link = document.createElement('a');
   link.href = dataURL;
   link.download = 'toilet-pack.png';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+
+  // Restore debug panel
+  if (camDebugPanel) {
+    camDebugPanel.style.display = prevDisplay;
+  }
 }
 
 // -----------------------------------------------------------------------------
-// 7. Event wiring & initial generation
+// 7. Camera debug panel update (C1/D2)
+// -----------------------------------------------------------------------------
+
+function updateCameraDebug() {
+  if (!camXEl || !camYEl || !camZEl || !camTxEl || !camTyEl || !camTzEl) return;
+
+  const pos = camera.position;
+  const tgt = controls.target;
+
+  camXEl.textContent  = pos.x.toFixed(2);
+  camYEl.textContent  = pos.y.toFixed(2);
+  camZEl.textContent  = pos.z.toFixed(2);
+  camTxEl.textContent = tgt.x.toFixed(2);
+  camTyEl.textContent = tgt.y.toFixed(2);
+  camTzEl.textContent = tgt.z.toFixed(2);
+}
+
+// -----------------------------------------------------------------------------
+// 8. Event wiring & initial generation
 // -----------------------------------------------------------------------------
 
 if (generateBtn) {
@@ -283,10 +314,10 @@ if (exportPngBtn) {
   });
 }
 
-// Generate initial pack and frame camera
+// Initial pack + camera
 generatePack();
 
-// Resize
+// Resize handler
 window.addEventListener('resize', () => {
   const width  = window.innerWidth;
   const height = window.innerHeight;
@@ -299,6 +330,7 @@ window.addEventListener('resize', () => {
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
+  updateCameraDebug();
   renderer.render(scene, camera);
 }
 animate();

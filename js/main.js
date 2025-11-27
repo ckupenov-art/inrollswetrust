@@ -1,4 +1,4 @@
-// main.js – correct spacing + rollGap variable + PNG export + camera debug
+// main.js – correct spacing + adjustable gap + real hollow core + camera debug
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
@@ -6,6 +6,7 @@ import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/cont
 // DOM elements
 const container       = document.getElementById("scene-container");
 const countLabel      = document.getElementById("count-label");
+
 const rollsPerRowEl   = document.getElementById("rollsPerRowInput");
 const rowsPerLayerEl  = document.getElementById("rowsPerLayerInput");
 const layersEl        = document.getElementById("layersInput");
@@ -68,8 +69,8 @@ scene.add(packGroup);
 // Helpers
 // --------------------------------------
 
-const MM = 0.1;      // 10 mm = 1 unit
-const EPS = 0.01;    // ~0.1 mm safety
+const MM  = 0.1;   // 10 mm = 1 unit
+const EPS = 0.01;  // small safety gap
 
 function getInt(el, fallback) {
   const v = parseInt(el.value, 10);
@@ -91,36 +92,73 @@ function readParams() {
     coreDiameterMm: getFloat(coreDiameterEl, 45),
     rollHeightMm:   getFloat(rollHeightEl, 100),
 
-    rollGapMm:      getFloat(rollGapEl, 1.0) // TEMPORARY visual gap
+    rollGapMm:      getFloat(rollGapEl, 1.0)   // visual gap along roll length
   };
 }
 
 // --------------------------------------
-// Geometry creation
+// Geometries (hollow roll + hollow core tube)
 // --------------------------------------
 
-let outerGeometry = null;
+let paperGeometry = null;
 let coreGeometry  = null;
 
-const outerMaterial = new THREE.MeshStandardMaterial({
+const paperMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff,
-  roughness: 0.5
+  roughness: 0.5,
+  metalness: 0.0,
+  side: THREE.DoubleSide
 });
+
 const coreMaterial = new THREE.MeshStandardMaterial({
-  color: 0x9a7b5f,
-  roughness: 0.7
+  color: 0x9a7b5f, // cardboard
+  roughness: 0.8,
+  metalness: 0.0,
+  side: THREE.DoubleSide
 });
 
 function updateGeometries(p) {
-  if (outerGeometry) outerGeometry.dispose();
+  if (paperGeometry) paperGeometry.dispose();
   if (coreGeometry)  coreGeometry.dispose();
 
-  const R = (p.rollDiameterMm / 2) * MM;
-  const coreR = (p.coreDiameterMm / 2) * MM;
-  const H = p.rollHeightMm * MM;
+  const outerR = (p.rollDiameterMm / 2) * MM;
+  const coreOuterR = (p.coreDiameterMm / 2) * MM;
+  const rollLength = p.rollHeightMm * MM;
 
-  outerGeometry = new THREE.CylinderGeometry(R, R, H, 32);
-  coreGeometry  = new THREE.CylinderGeometry(coreR, coreR, H * 1.02, 24);
+  // thickness of cardboard tube walls
+  const coreWallThickness = Math.min(coreOuterR * 0.25, 0.8 * MM); // up to ~8 mm
+  const coreInnerR = Math.max(coreOuterR - coreWallThickness, coreOuterR * 0.6);
+
+  // PAPER: hollow cylinder from coreOuterR to outerR
+  const paperShape = new THREE.Shape();
+  paperShape.absarc(0, 0, outerR, 0, Math.PI * 2, false);
+  const paperHole = new THREE.Path();
+  paperHole.absarc(0, 0, coreOuterR, 0, Math.PI * 2, true);
+  paperShape.holes.push(paperHole);
+
+  // CORE: thin hollow cardboard tube from coreInnerR to coreOuterR
+  const coreShape = new THREE.Shape();
+  coreShape.absarc(0, 0, coreOuterR, 0, Math.PI * 2, false);
+  const coreHole = new THREE.Path();
+  coreHole.absarc(0, 0, coreInnerR, 0, Math.PI * 2, true);
+  coreShape.holes.push(coreHole);
+
+  const extrudeSettings = {
+    depth: rollLength,
+    bevelEnabled: false,
+    steps: 1,
+    curveSegments: 32
+  };
+
+  const paperExtruded = new THREE.ExtrudeGeometry(paperShape, extrudeSettings);
+  const coreExtruded  = new THREE.ExtrudeGeometry(coreShape, extrudeSettings);
+
+  // Extrude is along +Z; rotate so length is along X (sideways roll)
+  paperExtruded.rotateY(Math.PI / 2);
+  coreExtruded.rotateY(Math.PI / 2);
+
+  paperGeometry = paperExtruded;
+  coreGeometry  = coreExtruded;
 }
 
 // --------------------------------------
@@ -137,12 +175,11 @@ function generatePack() {
   const p = readParams();
   updateGeometries(p);
 
-  const L = p.rollHeightMm * MM;    // length (X)
-  const D = p.rollDiameterMm * MM;  // diameter (Y,Z)
-  const G = p.rollGapMm * MM;       // visual gap
+  const L = p.rollHeightMm * MM;   // roll length (along X)
+  const D = p.rollDiameterMm * MM; // roll diameter (Y,Z)
+  const G = p.rollGapMm * MM;      // visual gap along length
 
-  // SIDEWAYS rolls
-  const spacingX = L + G + EPS; // main adjustable spacing
+  const spacingX = L + G + EPS;
   const spacingY = D + EPS;
   const spacingZ = D + EPS;
 
@@ -164,49 +201,52 @@ function generatePack() {
         const py = baseY   + y * spacingY;
         const pz = offsetZ + z * spacingZ;
 
-        const roll = new THREE.Mesh(outerGeometry, outerMaterial);
-        roll.castShadow = true;
-        roll.rotation.z = Math.PI / 2;
-        roll.position.set(px, py, pz);
+        // Paper volume
+        const paperMesh = new THREE.Mesh(paperGeometry, paperMaterial);
+        paperMesh.castShadow = true;
+        paperMesh.receiveShadow = true;
+        paperMesh.position.set(px, py, pz);
 
-        const core = new THREE.Mesh(coreGeometry, coreMaterial);
-        core.rotation.z = Math.PI / 2;
-        core.position.set(px, py, pz);
+        // Cardboard tube
+        const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+        coreMesh.castShadow = false;
+        coreMesh.receiveShadow = false;
+        coreMesh.position.set(px, py, pz);
 
-        packGroup.add(roll, core);
+        packGroup.add(paperMesh, coreMesh);
       }
     }
   }
 
   const total = p.rollsPerRow * p.rowsPerLayer * p.layers;
   totalRollsEl.textContent = total;
-  countLabel.textContent = `${total} rolls`;
+  countLabel.textContent   = `${total} rolls`;
 
-  frameCamera(packWidth, packHeight, packDepth);
+  // We no longer auto-frame; default/reset uses your fixed camera
 }
 
 // --------------------------------------
-// Camera control
+// Camera setup & reset (your chosen values)
 // --------------------------------------
 
-function frameCamera(w, h, d) {
-  const maxD = Math.max(w, h, d);
-  const dist = maxD * 2.2;
-
-  camera.position.set(dist, dist * 0.75, dist);
-  controls.target.set(0,0,0);
+function setDefaultCamera() {
+  // Your chosen camera coordinates:
+  camera.position.set(115.72, 46.43, -81.27);
+  controls.target.set(1.40, -7.93, 7.26);
   controls.update();
 }
 
+// Reset uses your default
 function resetCamera() {
-  generatePack();
+  setDefaultCamera();
 }
 
 // --------------------------------------
-// PNG Export
+// PNG Export (hide debug panel for clean image)
 // --------------------------------------
 
 function exportPNG() {
+  const prev = camDebugPanel.style.display || "";
   camDebugPanel.style.display = "none";
 
   renderer.render(scene, camera);
@@ -217,7 +257,7 @@ function exportPNG() {
   a.download = "toilet-pack.png";
   a.click();
 
-  camDebugPanel.style.display = "";
+  camDebugPanel.style.display = prev;
 }
 
 // --------------------------------------
@@ -235,20 +275,22 @@ function updateCameraDebug() {
 }
 
 // --------------------------------------
-// Events
+// Events & init
 // --------------------------------------
 
-generateBtn.onclick = generatePack;
-resetCameraBtn.onclick = resetCamera;
-exportPngBtn.onclick = exportPNG;
+generateBtn.onclick    = () => generatePack();
+resetCameraBtn.onclick = () => resetCamera();
+exportPngBtn.onclick   = () => exportPNG();
 
+// initial
 generatePack();
+setDefaultCamera();
 
-window.onresize = () => {
+window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-};
+});
 
 // --------------------------------------
 // Render loop

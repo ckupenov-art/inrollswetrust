@@ -1,4 +1,4 @@
-// FINAL FINAL main.js – clean rolls, visible core, no artifacts
+// WORKING STABLE VERSION — before roll-end modifications
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
@@ -97,7 +97,7 @@ function readParams() {
 }
 
 // --------------------------------------
-// Simple paper bump texture
+// Paper bump texture
 // --------------------------------------
 
 function createPaperBumpTexture() {
@@ -126,75 +126,60 @@ function createPaperBumpTexture() {
 const paperBumpTexture = createPaperBumpTexture();
 
 // --------------------------------------
-// Materials
+// Geometries & Materials
 // --------------------------------------
+
+let paperGeom = null;
+let coreGeom  = null;
+let seamGeom  = null;
 
 const paperMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff,
   roughness: 0.45,
+  metalness: 0.0,
   bumpMap: paperBumpTexture,
   bumpScale: 0.015
 });
 
 const coreMaterial = new THREE.MeshStandardMaterial({
   color: 0x9a7b5f,
-  roughness: 0.75
+  roughness: 0.75,
+  metalness: 0.0
 });
 
 const seamMaterial = new THREE.MeshStandardMaterial({
   color: 0xd6d6d6,
-  roughness: 0.6
+  roughness: 0.6,
+  metalness: 0.0
 });
-
-// --------------------------------------
-// Geometries
-// --------------------------------------
-
-let paperGeom = null;
-let coreGeom  = null;
-let seamGeom  = null;
-let paperRingGeom = null;
-let coreRingGeom  = null;
 
 function updateGeometries(p) {
   if (paperGeom) paperGeom.dispose();
   if (coreGeom)  coreGeom.dispose();
   if (seamGeom)  seamGeom.dispose();
-  if (paperRingGeom) paperRingGeom.dispose();
-  if (coreRingGeom)  coreRingGeom.dispose();
 
   const R_outer = (p.rollDiameterMm / 2) * MM;
   const R_core  = (p.coreDiameterMm / 2) * MM;
   const L       = p.rollHeightMm * MM;
 
-  // Outer paper cylinder
+  // This version has closed ends (original)
   paperGeom = new THREE.CylinderGeometry(R_outer, R_outer, L, 64, 1, false);
   paperGeom.rotateZ(Math.PI / 2);
 
-  // Core cylinder (shorter)
   const coreLength = L * 0.85;
   coreGeom = new THREE.CylinderGeometry(R_core, R_core, coreLength, 48, 1, false);
   coreGeom.rotateZ(Math.PI / 2);
 
-  // Seam ring
   const seamThickness = 0.4 * MM;
   seamGeom = new THREE.CylinderGeometry(
-    R_outer * 1.002,
-    R_outer * 1.002,
+    R_outer * 1.001,
+    R_outer * 1.001,
     seamThickness,
     64,
     1,
     false
   );
   seamGeom.rotateZ(Math.PI / 2);
-
-  // NEW: WHITE PAPER RING (outer)
-  paperRingGeom = new THREE.RingGeometry(R_core, R_outer, 64);
-  paperRingGeom.rotateZ(Math.PI / 2);
-
-  // NEW: BROWN CORE RING (inner) — *ring, NOT circle*
-  coreRingGeom = new THREE.RingGeometry(0, R_core, 48);
-  coreRingGeom.rotateZ(Math.PI / 2);
 }
 
 // --------------------------------------
@@ -231,44 +216,23 @@ function generatePack() {
         const py = baseY   + layer * spacingY;
         const pz = offsetZ + row * spacingZ;
 
-        // PAPER
         const paper = new THREE.Mesh(paperGeom, paperMaterial);
         paper.position.set(px, py, pz);
 
-        // CORE
         const core = new THREE.Mesh(coreGeom, coreMaterial);
         core.position.set(px, py, pz);
 
-        // SEAMS
         const seamOffset = (L / 2) - (1.2 * MM);
         const seamFront = new THREE.Mesh(seamGeom, seamMaterial);
         const seamBack  = new THREE.Mesh(seamGeom, seamMaterial);
         seamFront.position.set(px + seamOffset, py, pz);
         seamBack.position.set(px - seamOffset, py, pz);
 
-        // PAPER RINGS
-        const ringFront = new THREE.Mesh(paperRingGeom, paperMaterial);
-        ringFront.position.set(px + L/2 + 0.0001, py, pz);
-
-        const ringBack = new THREE.Mesh(paperRingGeom, paperMaterial);
-        ringBack.position.set(px - L/2 - 0.0001, py, pz);
-
-        // CORE RINGS (brown)
-        const coreFront = new THREE.Mesh(coreRingGeom, coreMaterial);
-        coreFront.position.set(px + L/2 + 0.0002, py, pz);
-
-        const coreBack = new THREE.Mesh(coreRingGeom, coreMaterial);
-        coreBack.position.set(px - L/2 - 0.0002, py, pz);
-
         packGroup.add(
           paper,
           core,
           seamFront,
-          seamBack,
-          ringFront,
-          ringBack,
-          coreFront,
-          coreBack
+          seamBack
         );
       }
     }
@@ -280,7 +244,7 @@ function generatePack() {
 }
 
 // --------------------------------------
-// Camera defaults
+// Camera
 // --------------------------------------
 
 function setDefaultCamera() {
@@ -288,3 +252,58 @@ function setDefaultCamera() {
   controls.target.set(1.40, -7.93, 7.26);
   controls.update();
 }
+
+function resetCamera() {
+  setDefaultCamera();
+}
+
+function exportPNG() {
+  const prev = camDebugPanel.style.display;
+  camDebugPanel.style.display = "none";
+
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL("image/png");
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "toilet-pack.png";
+  a.click();
+
+  camDebugPanel.style.display = prev;
+}
+
+function updateCameraDebug() {
+  camXEl.textContent  = camera.position.x.toFixed(2);
+  camYEl.textContent  = camera.position.y.toFixed(2);
+  camZEl.textContent  = camera.position.z.toFixed(2);
+
+  camTxEl.textContent = controls.target.x.toFixed(2);
+  camTyEl.textContent = controls.target.y.toFixed(2);
+  camTzEl.textContent = controls.target.z.toFixed(2);
+}
+
+// --------------------------------------
+// Init
+// --------------------------------------
+
+generateBtn.onclick    = () => generatePack();
+resetCameraBtn.onclick = () => resetCamera();
+exportPngBtn.onclick   = () => exportPNG();
+
+generatePack();
+setDefaultCamera();
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  updateCameraDebug();
+  renderer.render(scene, camera);
+}
+
+animate();

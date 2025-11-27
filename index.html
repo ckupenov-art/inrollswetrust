@@ -73,7 +73,7 @@
       white-space: nowrap;
     }
 
-    /* Floating control panel (C3) – top-left */
+    /* Floating control panel – top-left */
     #control-panel {
       position: absolute;
       top: 0.75rem;
@@ -170,6 +170,26 @@
     button.secondary:active {
       box-shadow: 0 3px 8px rgba(15, 23, 42, 0.8);
     }
+
+    /* Temporary camera debug panel – top-right */
+    #camera-debug {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.6rem;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      font-size: 0.7rem;
+      color: #9ca3af;
+      max-width: 190px;
+      line-height: 1.35;
+    }
+    #camera-debug strong {
+      color: #e5e7eb;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -187,7 +207,7 @@
     <div id="scene-container"></div>
     <div id="hint">Left: Rotate · Right/Middle: Pan · Scroll: Zoom</div>
 
-    <!-- Floating minimal control panel (C3) -->
+    <!-- Floating minimal control panel -->
     <div id="control-panel">
       <h2>Pack Settings</h2>
       <div class="field-group">
@@ -232,6 +252,18 @@
         <button id="resetCameraBtn" class="secondary">Reset camera</button>
         <button id="exportPngBtn" class="secondary">Export PNG</button>
       </div>
+    </div>
+
+    <!-- Temporary camera debug panel -->
+    <div id="camera-debug">
+      <strong>Camera</strong><br>
+      x: <span id="cam-x">–</span><br>
+      y: <span id="cam-y">–</span><br>
+      z: <span id="cam-z">–</span><br>
+      <strong>Target</strong><br>
+      tx: <span id="cam-tx">–</span><br>
+      ty: <span id="cam-ty">–</span><br>
+      tz: <span id="cam-tz">–</span>
     </div>
   </main>
 

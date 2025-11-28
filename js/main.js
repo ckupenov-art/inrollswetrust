@@ -1,4 +1,4 @@
-// main.js – decorative printed rolls + studio lighting + transparent PNG
+// main.js – clean white rolls + real hollow core + beige background + product lighting
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
@@ -32,7 +32,7 @@ const camTzEl = document.getElementById("cam-tz");
 const camDebugPanel = document.getElementById("camera-debug");
 
 // ------------------------------------------------
-// Scene / Renderer
+// Scene + Renderer
 // ------------------------------------------------
 const scene = new THREE.Scene();
 scene.background = null;
@@ -49,40 +49,45 @@ const renderer = new THREE.WebGLRenderer({
   alpha: true,
   preserveDrawingBuffer: true
 });
+
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 0);
 
-renderer.domElement.style.backgroundColor = "#b8beca";
+// Clean beige UI background
+renderer.domElement.style.backgroundColor = "#e8e4da";
+
 container.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // ------------------------------------------------
-// Lighting – PRODUCT RENDER STYLE
+// Lighting – clean product render
 // ------------------------------------------------
 const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.01).texture;
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.02).texture;
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.33));
+scene.add(new THREE.AmbientLight(0xffffff, 0.32));
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.15);
 keyLight.position.set(40, 60, 40);
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.25);
 fillLight.position.set(-40, 20, -40);
 scene.add(fillLight);
 
-const hemi = new THREE.HemisphereLight(0xffffff, 0xdddddd, 0.25);
-scene.add(hemi);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xdddddd, 0.2));
 
 // ------------------------------------------------
 const packGroup = new THREE.Group();
 scene.add(packGroup);
 
-const MM  = 0.1;
+// ------------------------------------------------
+// Params
+// ------------------------------------------------
+const MM  = 0.1; // 10 mm per unit
 const EPS = 0.01;
 
 function getInt(el, fallback) {
@@ -105,29 +110,21 @@ function readParams() {
     coreDiameterMm: getFloat(coreDiameterEl, 45),
     rollHeightMm:   getFloat(rollHeightEl, 100),
 
-    rollGapMm: getFloat(rollGapEl, 7) // default spacing
+    rollGapMm: (getFloat(rollGapEl, 7) || 7)   // always default 7
   };
 }
 
 // ------------------------------------------------
-// Load seamless print texture
-// ------------------------------------------------
-const textureLoader = new THREE.TextureLoader();
-const paperPrintTex = textureLoader.load("./assets/pattern.png");
-paperPrintTex.wrapS = paperPrintTex.wrapT = THREE.RepeatWrapping;
-paperPrintTex.repeat.set(2, 1);
-
-// ------------------------------------------------
-// Roll Builder
+// Roll Builder – CLEAN WHITE ROLL + REAL HOLLOW CORE
 // ------------------------------------------------
 function buildRoll(R_outer, R_coreOuter, L) {
   const group = new THREE.Group();
 
+  // Materials
   const paperSideMat = new THREE.MeshStandardMaterial({
     color: 0xf2f2f2,
     roughness: 0.7,
-    metalness: 0.0,
-    map: paperPrintTex
+    metalness: 0.0
   });
 
   const paperEndMat = new THREE.MeshStandardMaterial({
@@ -138,7 +135,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   });
 
   const coreSideMat = new THREE.MeshStandardMaterial({
-    color: 0xdfd2b8,
+    color: 0xdfd2b8, // clean beige cardboard
     roughness: 0.85,
     metalness: 0.0
   });
@@ -152,28 +149,28 @@ function buildRoll(R_outer, R_coreOuter, L) {
 
   const coreEndMat = coreSideMat;
 
-  const bevel = 0.4 * MM;
-  const coreThick = 1.2 * MM;
-  const R_coreInner = Math.max(0, R_coreOuter - coreThick);
+  // Core dimensions
+  const coreThickness = 1.2 * MM;
+  const R_coreInner = Math.max(0, R_coreOuter - coreThickness);
 
-  // SIDE (with texture)
+  // --------------------------------------------
+  // Paper SIDE
+  // --------------------------------------------
   const sideGeom = new THREE.CylinderGeometry(
     R_outer, R_outer, L,
     64, 1, true
   );
   sideGeom.rotateZ(Math.PI / 2);
-  sideGeom.attributes.uv2 = sideGeom.attributes.uv;
+  group.add(new THREE.Mesh(sideGeom, paperSideMat));
 
-  const sideMesh = new THREE.Mesh(sideGeom, paperSideMat);
-  group.add(sideMesh);
-
-  // END RINGS
-  const paperEndRingGeom = new THREE.RingGeometry(
+  // --------------------------------------------
+  // Paper END rings
+  // --------------------------------------------
+  const endRingGeom = new THREE.RingGeometry(
     R_coreOuter, R_outer, 64
   );
-  paperEndRingGeom.attributes.uv2 = paperEndRingGeom.attributes.uv;
 
-  const endFront = new THREE.Mesh(paperEndRingGeom, paperEndMat);
+  const endFront = new THREE.Mesh(endRingGeom, paperEndMat);
   endFront.rotation.y = Math.PI / 2;
   endFront.position.x = L / 2;
   group.add(endFront);
@@ -183,60 +180,57 @@ function buildRoll(R_outer, R_coreOuter, L) {
   endBack.position.x = -L / 2;
   group.add(endBack);
 
-  // CORE OUTER
-  const coreSideGeom = new THREE.CylinderGeometry(
+  // --------------------------------------------
+  // Core outer wall
+  // --------------------------------------------
+  const coreOuterGeom = new THREE.CylinderGeometry(
     R_coreOuter, R_coreOuter, L * 0.98,
     48, 1, true
   );
-  coreSideGeom.rotateZ(Math.PI / 2);
-  coreSideGeom.attributes.uv2 = coreSideGeom.attributes.uv;
-  group.add(new THREE.Mesh(coreSideGeom, coreSideMat));
+  coreOuterGeom.rotateZ(Math.PI / 2);
 
-  // CORE INNER
+  group.add(new THREE.Mesh(coreOuterGeom, coreSideMat));
+
+  // --------------------------------------------
+  // Core inner wall (hollow)
+  // --------------------------------------------
   const coreInnerGeom = new THREE.CylinderGeometry(
     R_coreInner, R_coreInner, L * 0.98,
     48, 1, true
   );
   coreInnerGeom.rotateZ(Math.PI / 2);
-  coreInnerGeom.scale(-1, 1, 1);
-  coreInnerGeom.attributes.uv2 = coreInnerGeom.attributes.uv;
+  coreInnerGeom.scale(-1, 1, 1); // flip normals
+
   group.add(new THREE.Mesh(coreInnerGeom, holeMat));
 
-  // CORE END RINGS
-  const coreEndGeom = new THREE.RingGeometry(
+  // --------------------------------------------
+  // Core end rings (open hole)
+  // --------------------------------------------
+  const coreEndRingGeom = new THREE.RingGeometry(
     R_coreInner, R_coreOuter, 48
   );
-  coreEndGeom.attributes.uv2 = coreEndGeom.attributes.uv;
 
-  const coreEndFront = new THREE.Mesh(coreEndGeom, coreEndMat);
-  coreEndFront.rotation.y = Math.PI / 2;
-  coreEndFront.position.x = L / 2;
-  group.add(coreEndFront);
+  const coreFront = new THREE.Mesh(coreEndRingGeom, coreEndMat);
+  coreFront.rotation.y = Math.PI / 2;
+  coreFront.position.x = L / 2;
+  group.add(coreFront);
 
-  const coreEndBack = coreEndFront.clone();
-  coreEndBack.rotation.y = -Math.PI / 2;
-  coreEndBack.position.x = -L / 2;
-  group.add(coreEndBack);
+  const coreBack = coreFront.clone();
+  coreBack.rotation.y = -Math.PI / 2;
+  coreBack.position.x = -L / 2;
+  group.add(coreBack);
 
-  // HOLE DISCS
-  const holeDiscGeom = new THREE.CircleGeometry(R_coreInner, 32);
-  holeDiscGeom.attributes.uv2 = holeDiscGeom.attributes.uv;
+  // --------------------------------------------
+  // OPEN hole (no disc!)
+  // --------------------------------------------
 
-  const holeFront = new THREE.Mesh(holeDiscGeom, holeMat);
-  holeFront.rotation.y = Math.PI / 2;
-  holeFront.position.x = L / 2 + 0.0001;
-  group.add(holeFront);
-
-  const holeBack = holeFront.clone();
-  holeBack.rotation.y = -Math.PI / 2;
-  holeBack.position.x = -L / 2 - 0.0001;
-  group.add(holeBack);
+  // No hole mesh—fully open
 
   return group;
 }
 
 // ------------------------------------------------
-// Pack Layout
+// Pack generation
 // ------------------------------------------------
 function clearPack() {
   while (packGroup.children.length) packGroup.remove(packGroup.children[0]);
@@ -283,7 +277,7 @@ function generatePack() {
 }
 
 // ------------------------------------------------
-// Camera Controls
+// Camera + Export
 // ------------------------------------------------
 function setDefaultCamera() {
   camera.position.set(115.72, 46.43, -81.27);
@@ -295,9 +289,6 @@ function resetCamera() {
   setDefaultCamera();
 }
 
-// ------------------------------------------------
-// Export PNG
-// ------------------------------------------------
 function exportPNG() {
   const prev = camDebugPanel.style.display;
   camDebugPanel.style.display = "none";
@@ -313,9 +304,6 @@ function exportPNG() {
   camDebugPanel.style.display = prev;
 }
 
-// ------------------------------------------------
-// Debug Panel
-// ------------------------------------------------
 function updateCameraDebug() {
   camXEl.textContent  = camera.position.x.toFixed(2);
   camYEl.textContent  = camera.position.y.toFixed(2);
@@ -327,11 +315,11 @@ function updateCameraDebug() {
 }
 
 // ------------------------------------------------
-// Init
+// Init Loop
 // ------------------------------------------------
-generateBtn.onclick    = () => generatePack();
-resetCameraBtn.onclick = () => resetCamera();
-exportPngBtn.onclick   = () => exportPNG();
+generateBtn.onclick    = generatePack;
+resetCameraBtn.onclick = resetCamera;
+exportPngBtn.onclick   = exportPNG;
 
 generatePack();
 setDefaultCamera();

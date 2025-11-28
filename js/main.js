@@ -298,13 +298,13 @@ function updateGeometries(p) {
 
   // Seam ring – slightly oversized but very subtle
   const seamThickness = 0.4 * MM;
-  seamGeom = new THREE.CylinderGeometry(
-    R_outer * 1.003, // almost same radius; avoids thick black ring
-    R_outer * 1.003,
-    seamThickness,
-    48,
-    1,
-    true
+seamGeom = new THREE.CylinderGeometry(
+  R_outer * 0.995,   // slightly inside so no black edge
+  R_outer * 0.995,
+  seamThickness,
+  48,
+  1,
+  true
   );
   seamGeom.rotateZ(Math.PI / 2);
 

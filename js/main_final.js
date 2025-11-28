@@ -1,4 +1,4 @@
-// main_v2.js – strong shading + bevel + hollow core + beige bg + restored camera
+// main_final.js – stable working version
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
@@ -53,7 +53,6 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 0);
 renderer.domElement.style.backgroundColor = "#e8e4da";
-
 container.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -77,11 +76,11 @@ scene.add(new THREE.HemisphereLight(0xffffff, 0xf0f0f0, 0.15));
 // ------------------------------------------------
 // CONSTANTS
 // ------------------------------------------------
-const packGroup = new THREE.Group();
-scene.add(packGroup);
-
 const MM  = 0.1;
 const EPS = 0.01;
+
+const packGroup = new THREE.Group();
+scene.add(packGroup);
 
 // ------------------------------------------------
 // Helpers
@@ -106,12 +105,12 @@ function readParams() {
     coreDiameterMm: getFloat(coreDiameterEl, 45),
     rollHeightMm:   getFloat(rollHeightEl, 100),
 
-    rollGapMm: (getFloat(rollGapEl, 7) || 7)
+    rollGapMm: getFloat(rollGapEl, 7)
   };
 }
 
 // ------------------------------------------------
-// Bump texture
+// Micro bump texture
 // ------------------------------------------------
 function createPaperBumpTexture() {
   const size = 64;
@@ -152,8 +151,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
     roughness: 0.42,
     metalness: 0.0,
     bumpMap: paperBumpTex,
-    bumpScale: 0.03,
-    envMapIntensity: 0.22
+    bumpScale: 0.03
   });
 
   const paperEndMat = new THREE.MeshStandardMaterial({
@@ -162,8 +160,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
     metalness: 0.0,
     side: THREE.DoubleSide,
     bumpMap: paperBumpTex,
-    bumpScale: 0.06,
-    envMapIntensity: 0.12
+    bumpScale: 0.06
   });
 
   const coreSideMat = new THREE.MeshStandardMaterial({
@@ -232,7 +229,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   coreOuterGeom.rotateZ(Math.PI / 2);
   group.add(new THREE.Mesh(coreOuterGeom, coreSideMat));
 
-  // HOLLOW CENTER
+  // HOLLOW INNER
   const coreInnerGeom = new THREE.CylinderGeometry(
     R_coreInner, R_coreInner,
     L * 0.97,
@@ -262,7 +259,8 @@ function buildRoll(R_outer, R_coreOuter, L) {
 // Pack generation
 // ------------------------------------------------
 function clearPack() {
-  while (packGroup.children.length) packGroup.remove(packGroup.children[0]);
+  while (packGroup.children.length)
+    packGroup.remove(packGroup.children[0]);
 }
 
 function generatePack() {
@@ -291,4 +289,87 @@ function generatePack() {
 
         const x = offsetX + col * spacingX;
         const y = baseY   + layer * spacingY;
-        const z = offsetZ + row *
+        const z = offsetZ + row * spacingZ;
+
+        const roll = buildRoll(R_outer, R_core, L);
+        roll.position.set(x, y, z);
+        packGroup.add(roll);
+      }
+    }
+  }
+
+  const total = p.rollsPerRow * p.rowsPerLayer * p.layers;
+  totalRollsEl.textContent = total;
+  countLabel.textContent   = `${total} rolls`;
+}
+
+// ------------------------------------------------
+// Camera (restored)
+// ------------------------------------------------
+function setDefaultCamera() {
+  camera.position.set(115.72, 46.43, -81.27);
+  controls.target.set(1.40, -7.93, 7.26);
+  controls.update();
+}
+
+function resetCamera() {
+  setDefaultCamera();
+}
+
+// ------------------------------------------------
+// Export PNG
+// ------------------------------------------------
+function exportPNG() {
+  const prev = camDebugPanel.style.display;
+  camDebugPanel.style.display = "none";
+
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL("image/png");
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "toilet-pack.png";
+  a.click();
+
+  camDebugPanel.style.display = prev;
+}
+
+// ------------------------------------------------
+// Camera debug
+// ------------------------------------------------
+function updateCameraDebug() {
+  camXEl.textContent  = camera.position.x.toFixed(2);
+  camYEl.textContent  = camera.position.y.toFixed(2);
+  camZEl.textContent  = camera.position.z.toFixed(2);
+
+  camTxEl.textContent = controls.target.x.toFixed(2);
+  camTyEl.textContent = controls.target.y.toFixed(2);
+  camTzEl.textContent = controls.target.z.toFixed(2);
+}
+
+// ------------------------------------------------
+// Init
+// ------------------------------------------------
+generateBtn.onclick    = generatePack;
+resetCameraBtn.onclick = resetCamera;
+exportPngBtn.onclick   = exportPNG;
+
+generatePack();
+setDefaultCamera();
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ------------------------------------------------
+// Loop
+// ------------------------------------------------
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  updateCameraDebug();
+  renderer.render(scene, camera);
+}
+animate();

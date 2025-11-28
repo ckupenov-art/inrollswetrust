@@ -270,7 +270,7 @@ function generatePack() {
 
   const R_outer = (p.rollDiameterMm / 2) * MM;
   const R_core  = (p.coreDiameterMm / 2) * MM;
-  const L       = p.rollHeightMm * MM;   // ✔ FIXED
+  const L       = p.rollHeightMm * MM;
 
   const D = p.rollDiameterMm * MM;
   const G = p.rollGapMm * MM;
@@ -291,88 +291,4 @@ function generatePack() {
 
         const x = offsetX + col * spacingX;
         const y = baseY   + layer * spacingY;
-        const z = offsetZ + row * spacingZ;
-
-        const roll = buildRoll(R_outer, R_core, L);
-        roll.position.set(x, y, z);
-        packGroup.add(roll);
-      }
-    }
-  }
-
-  const total = p.rollsPerRow * p.rowsPerLayer * p.layers;
-  totalRollsEl.textContent = total;
-  countLabel.textContent   = `${total} rolls`;
-}
-
-// ------------------------------------------------
-// Camera (restored original)
-// ------------------------------------------------
-function setDefaultCamera() {
-  camera.position.set(115.72, 46.43, -81.27);
-  controls.target.set(1.40, -7.93, 7.26);
-  controls.update();
-}
-
-function resetCamera() {
-  setDefaultCamera();
-}
-
-// ------------------------------------------------
-// PNG Export
-// ------------------------------------------------
-function exportPNG() {
-  const prev = camDebugPanel.style.display;
-  camDebugPanel.style.display = "none";
-
-  renderer.render(scene, camera);
-  const url = renderer.domElement.toDataURL("image/png");
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "toilet-pack.png";
-  a.click();
-
-  camDebugPanel.style.display = prev;
-}
-
-// ------------------------------------------------
-// Camera debug
-// ------------------------------------------------
-function updateCameraDebug() {
-  camXEl.textContent  = camera.position.x.toFixed(2);
-  camYEl.textContent  = camera.position.y.toFixed(2);
-  camZEl.textContent  = camera.position.z.toFixed(2);
-
-  camTxEl.textContent = controls.target.x.toFixed(2);
-  camTyEl.textContent = controls.target.y.toFixed(2);
-  camTzEl.textContent = controls.target.z.toFixed(2);
-}
-
-// ------------------------------------------------
-// Init
-// ------------------------------------------------
-generateBtn.onclick    = generatePack;
-resetCameraBtn.onclick = resetCamera;
-exportPngBtn.onclick   = exportPng;
-
-generatePack();
-setDefaultCamera();
-
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// ------------------------------------------------
-// Animation loop
-// ------------------------------------------------
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  updateCameraDebug();
-  renderer.render(scene, camera);
-}
-
-animate();
+        const z = offsetZ + row *

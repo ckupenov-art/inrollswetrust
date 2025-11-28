@@ -37,13 +37,12 @@ const scene = new THREE.Scene();
 scene.background = null;
 
 const camera = new THREE.PerspectiveCamera(
-  35, // narrower FOV = closer look
+  35,
   window.innerWidth / window.innerHeight,
   0.1,
   5000
 );
 
-// Renderer
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   alpha: true,
@@ -54,20 +53,17 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 0);
 
-// Beige UI background (PNG export still transparent)
+// Beige UI background
 renderer.domElement.style.backgroundColor = "#e8e4da";
 
 container.appendChild(renderer.domElement);
 
-// Orbit controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // ------------------------------------------------
-// Lighting – strong, clean, readable
+// Lighting
 // ------------------------------------------------
-
-// No HDRI — it washed out highlights
 scene.add(new THREE.AmbientLight(0xffffff, 0.18));
 
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -78,21 +74,19 @@ const fillLight = new THREE.DirectionalLight(0xffffff, 0.22);
 fillLight.position.set(-40, 25, -50);
 scene.add(fillLight);
 
-// Soft top fill
 scene.add(new THREE.HemisphereLight(0xffffff, 0xf0f0f0, 0.15));
 
 // ------------------------------------------------
 // GLOBAL CONSTANTS
 // ------------------------------------------------
-
 const packGroup = new THREE.Group();
 scene.add(packGroup);
 
-const MM  = 0.1; // 10 mm -> 1 Three.js unit
+const MM  = 0.1;
 const EPS = 0.01;
 
 // ------------------------------------------------
-// Input helpers
+// Helpers
 // ------------------------------------------------
 function getInt(el, fallback) {
   const v = parseInt(el.value, 10);
@@ -114,12 +108,12 @@ function readParams() {
     coreDiameterMm: getFloat(coreDiameterEl, 45),
     rollHeightMm:   getFloat(rollHeightEl, 100),
 
-    rollGapMm: (getFloat(rollGapEl, 7) || 7) // default 7
+    rollGapMm: (getFloat(rollGapEl, 7) || 7)
   };
 }
 
 // ------------------------------------------------
-// Micro bump texture (invisible, but adds shading)
+// Micro bump texture
 // ------------------------------------------------
 function createPaperBumpTexture() {
   const size = 64;
@@ -150,72 +144,64 @@ function createPaperBumpTexture() {
 const paperBumpTex = createPaperBumpTexture();
 
 // ------------------------------------------------
-// Roll Builder — bevel + micro shading + hollow core
+// Roll Builder — bevel + shading + hollow core
 // ------------------------------------------------
 function buildRoll(R_outer, R_coreOuter, L) {
   const group = new THREE.Group();
 
-//
-// IMPROVED MATERIALS — better separation, no unicolor look
-//
+  //
+  // ⭐ ULTRA-WHITE MATERIALS
+  //
 
-// Side of roll → slightly cooler, smoother, subtle vertical falloff
-const paperSideMat = new THREE.MeshStandardMaterial({
-  color: 0xf2f2f2,        // slightly cooler white
-  roughness: 0.48,        // smoother than ends
-  metalness: 0.0,
-  bumpMap: paperBumpTex,
-  bumpScale: 0.025,       // lighter bump for side
-  envMapIntensity: 0.18
-});
+  const paperSideMat = new THREE.MeshStandardMaterial({
+    color: 0xfcfcfc,       // very bright white
+    roughness: 0.42,
+    metalness: 0.0,
+    bumpMap: paperBumpTex,
+    bumpScale: 0.03,
+    envMapIntensity: 0.22
+  });
 
-// Front face → warmer, more fibrous, more matte
-const paperEndMat = new THREE.MeshStandardMaterial({
-  color: 0xf8f7f3,        // warmer tone for front disc
-  roughness: 0.78,        // more matte than side
-  metalness: 0.0,
-  side: THREE.DoubleSide,
-  bumpMap: paperBumpTex,
-  bumpScale: 0.055,       // stronger bump on front surface
-  envMapIntensity: 0.12
-});
+  const paperEndMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,       // pure white
+    roughness: 0.72,
+    metalness: 0.0,
+    side: THREE.DoubleSide,
+    bumpMap: paperBumpTex,
+    bumpScale: 0.06,
+    envMapIntensity: 0.12
+  });
 
-// Core cardboard → more distinct, warmer, stronger shading
-const coreSideMat = new THREE.MeshStandardMaterial({
-  color: 0xd7c3a1,
-  roughness: 0.88,
-  metalness: 0.0
-});
+  const coreSideMat = new THREE.MeshStandardMaterial({
+    color: 0xe6d6bc,
+    roughness: 0.88,
+    metalness: 0.0
+  });
 
-const holeMat = new THREE.MeshStandardMaterial({
-  color: 0xd6d6d6,
-  roughness: 0.9,
-  metalness: 0.0,
-  side: THREE.DoubleSide
-});
+  const holeMat = new THREE.MeshStandardMaterial({
+    color: 0xe4e4e4,
+    roughness: 0.9,
+    metalness: 0.0,
+    side: THREE.DoubleSide
+  });
 
   const coreEndMat = coreSideMat;
 
   // Dimensions
   const coreThickness = 1.2 * MM;
   const R_coreInner = Math.max(0, R_coreOuter - coreThickness);
-  const bevelDepth = 0.9 * MM; // stronger bevel
+  const bevelDepth = 0.9 * MM;
 
-  // ---------------------------
-  // SIDE (reduced to account for bevels)
-  // ---------------------------
+  // SIDE
   const sideGeom = new THREE.CylinderGeometry(
     R_outer, R_outer,
     L - bevelDepth * 2,
     64, 1, true
   );
   sideGeom.rotateZ(Math.PI / 2);
-
   group.add(new THREE.Mesh(sideGeom, paperSideMat));
 
-  // ---------------------------
   // BEVELS
-  // ---------------------------
   const bevelGeom = new THREE.CylinderGeometry(
     R_outer, R_outer,
     bevelDepth,
@@ -231,49 +217,39 @@ const holeMat = new THREE.MeshStandardMaterial({
   bevelBack.position.x = -L/2 + bevelDepth/2;
   group.add(bevelBack);
 
-  // ---------------------------
-  // PAPER END RINGS
-  // ---------------------------
+  // END RINGS
   const endRingGeom = new THREE.RingGeometry(R_coreOuter, R_outer, 64);
 
   const endFront = new THREE.Mesh(endRingGeom, paperEndMat);
-  endFront.position.x = L / 2;
+  endFront.position.x = L/2;
   endFront.rotation.y = Math.PI / 2;
   group.add(endFront);
 
   const endBack = endFront.clone();
-  endBack.position.x = -L / 2;
+  endBack.position.x = -L/2;
   endBack.rotation.y = -Math.PI / 2;
   group.add(endBack);
 
-  // ---------------------------
   // CORE OUTER WALL
-  // ---------------------------
   const coreOuterGeom = new THREE.CylinderGeometry(
     R_coreOuter, R_coreOuter,
     L * 0.97,
     48, 1, true
   );
   coreOuterGeom.rotateZ(Math.PI / 2);
-
   group.add(new THREE.Mesh(coreOuterGeom, coreSideMat));
 
-  // ---------------------------
-  // CORE INNER (HOLLOW)
-  // ---------------------------
+  // CORE INNER
   const coreInnerGeom = new THREE.CylinderGeometry(
     R_coreInner, R_coreInner,
     L * 0.97,
     48, 1, true
   );
   coreInnerGeom.rotateZ(Math.PI / 2);
-  coreInnerGeom.scale(-1, 1, 1); // flip normals inward
-
+  coreInnerGeom.scale(-1, 1, 1);
   group.add(new THREE.Mesh(coreInnerGeom, holeMat));
 
-  // ---------------------------
   // CORE END RINGS
-  // ---------------------------
   const coreEndRingGeom = new THREE.RingGeometry(R_coreInner, R_coreOuter, 48);
 
   const coreFront = new THREE.Mesh(coreEndRingGeom, coreEndMat);
@@ -301,6 +277,7 @@ function generatePack() {
 
   const R_outer = (p.rollDiameterMm / 2) * MM;
   const R_core  = (p.coreDiameterMm / 2) * MM;
+  const L       = p.rollHeightMn * MM;
   const L       = p.rollHeightMm * MM;
 
   const D = p.rollDiameterMm * MM;
@@ -337,10 +314,10 @@ function generatePack() {
 }
 
 // ------------------------------------------------
-// Camera setup
+// Camera
 // ------------------------------------------------
 function setDefaultCamera() {
-  camera.position.set(50, 30, 60); // MUCH closer
+  camera.position.set(50, 30, 60);
   controls.target.set(0, 0, 0);
   controls.update();
 }

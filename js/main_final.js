@@ -1,4 +1,4 @@
-// main_v2.js – strong shading + bevel + hollow core + beige bg + closer camera
+// main_v2.js – strong shading + bevel + hollow core + beige bg + restored camera
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
@@ -52,8 +52,6 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 0);
-
-// Beige UI background
 renderer.domElement.style.backgroundColor = "#e8e4da";
 
 container.appendChild(renderer.domElement);
@@ -77,7 +75,7 @@ scene.add(fillLight);
 scene.add(new THREE.HemisphereLight(0xffffff, 0xf0f0f0, 0.15));
 
 // ------------------------------------------------
-// GLOBAL CONSTANTS
+// CONSTANTS
 // ------------------------------------------------
 const packGroup = new THREE.Group();
 scene.add(packGroup);
@@ -113,7 +111,7 @@ function readParams() {
 }
 
 // ------------------------------------------------
-// Micro bump texture
+// Bump texture
 // ------------------------------------------------
 function createPaperBumpTexture() {
   const size = 64;
@@ -144,17 +142,13 @@ function createPaperBumpTexture() {
 const paperBumpTex = createPaperBumpTexture();
 
 // ------------------------------------------------
-// Roll Builder — bevel + shading + hollow core
+// Roll builder
 // ------------------------------------------------
 function buildRoll(R_outer, R_coreOuter, L) {
   const group = new THREE.Group();
 
-  //
-  // ⭐ ULTRA-WHITE MATERIALS
-  //
-
   const paperSideMat = new THREE.MeshStandardMaterial({
-    color: 0xfcfcfc,       // very bright white
+    color: 0xfcfcfc,
     roughness: 0.42,
     metalness: 0.0,
     bumpMap: paperBumpTex,
@@ -163,7 +157,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   });
 
   const paperEndMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,       // pure white
+    color: 0xffffff,
     roughness: 0.72,
     metalness: 0.0,
     side: THREE.DoubleSide,
@@ -187,7 +181,6 @@ function buildRoll(R_outer, R_coreOuter, L) {
 
   const coreEndMat = coreSideMat;
 
-  // Dimensions
   const coreThickness = 1.2 * MM;
   const R_coreInner = Math.max(0, R_coreOuter - coreThickness);
   const bevelDepth = 0.9 * MM;
@@ -217,7 +210,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   bevelBack.position.x = -L/2 + bevelDepth/2;
   group.add(bevelBack);
 
-  // END RINGS
+  // PAPER ENDS
   const endRingGeom = new THREE.RingGeometry(R_coreOuter, R_outer, 64);
 
   const endFront = new THREE.Mesh(endRingGeom, paperEndMat);
@@ -230,7 +223,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   endBack.rotation.y = -Math.PI / 2;
   group.add(endBack);
 
-  // CORE OUTER WALL
+  // CORE OUTER
   const coreOuterGeom = new THREE.CylinderGeometry(
     R_coreOuter, R_coreOuter,
     L * 0.97,
@@ -239,7 +232,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   coreOuterGeom.rotateZ(Math.PI / 2);
   group.add(new THREE.Mesh(coreOuterGeom, coreSideMat));
 
-  // CORE INNER
+  // HOLLOW CENTER
   const coreInnerGeom = new THREE.CylinderGeometry(
     R_coreInner, R_coreInner,
     L * 0.97,
@@ -253,12 +246,12 @@ function buildRoll(R_outer, R_coreOuter, L) {
   const coreEndRingGeom = new THREE.RingGeometry(R_coreInner, R_coreOuter, 48);
 
   const coreFront = new THREE.Mesh(coreEndRingGeom, coreEndMat);
-  coreFront.position.x = L / 2;
+  coreFront.position.x = L/2;
   coreFront.rotation.y = Math.PI / 2;
   group.add(coreFront);
 
   const coreBack = coreFront.clone();
-  coreBack.position.x = -L / 2;
+  coreBack.position.x = -L/2;
   coreBack.rotation.y = -Math.PI / 2;
   group.add(coreBack);
 
@@ -277,8 +270,7 @@ function generatePack() {
 
   const R_outer = (p.rollDiameterMm / 2) * MM;
   const R_core  = (p.coreDiameterMm / 2) * MM;
-  const L       = p.rollHeightMn * MM;
-  const L       = p.rollHeightMm * MM;
+  const L       = p.rollHeightMm * MM;   // ✔ FIXED
 
   const D = p.rollDiameterMm * MM;
   const G = p.rollGapMm * MM;
@@ -314,11 +306,11 @@ function generatePack() {
 }
 
 // ------------------------------------------------
-// Camera
+// Camera (restored original)
 // ------------------------------------------------
 function setDefaultCamera() {
-  camera.position.set(50, 30, 60);
-  controls.target.set(0, 0, 0);
+  camera.position.set(115.72, 46.43, -81.27);
+  controls.target.set(1.40, -7.93, 7.26);
   controls.update();
 }
 
@@ -362,7 +354,7 @@ function updateCameraDebug() {
 // ------------------------------------------------
 generateBtn.onclick    = generatePack;
 resetCameraBtn.onclick = resetCamera;
-exportPngBtn.onclick   = exportPNG;
+exportPngBtn.onclick   = exportPng;
 
 generatePack();
 setDefaultCamera();

@@ -12,7 +12,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #0b1120;
+      background: #e8e4da; /* unified beige background */
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: #e5e7eb;
     }
@@ -39,6 +39,7 @@
       font-size: 1rem;
       text-transform: uppercase;
       letter-spacing: 0.12em;
+      color: #e5e7eb;
     }
     header span.subtitle {
       font-size: 0.8rem;
@@ -68,7 +69,6 @@
       white-space: nowrap;
     }
 
-    /* Control panel top-left */
     #control-panel {
       position: absolute;
       top: 0.9rem;
@@ -153,24 +153,6 @@
       box-shadow: none;
     }
 
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 20px rgba(79,70,229,0.7);
-      background: #4338ca;
-    }
-    button.secondary:hover {
-      background: #111827;
-      box-shadow: 0 8px 18px rgba(15,23,42,0.8);
-    }
-    button:active {
-      transform: translateY(0);
-      box-shadow: 0 4px 10px rgba(79,70,229,0.5);
-    }
-    button.secondary:active {
-      box-shadow: 0 4px 10px rgba(15,23,42,0.8);
-    }
-
-    /* Camera debug panel top-right */
     #camera-debug {
       position: absolute;
       top: 0.9rem;
@@ -202,7 +184,6 @@
     <div id="scene-container"></div>
     <div id="hint">Left: Rotate • Right/Middle: Pan • Scroll: Zoom</div>
 
-    <!-- Control panel -->
     <div id="control-panel">
       <h2>Pack Settings</h2>
 
@@ -238,9 +219,11 @@
           <label for="rollHeightInput">Height (mm)</label>
           <input id="rollHeightInput" type="number" min="10" value="100">
         </div>
+
+        <!-- DEFAULT SPACING FIXED TO 7 -->
         <div class="field">
           <label for="rollGapInput">Roll gap (mm)</label>
-          <input id="rollGapInput" type="number" step="0.1" min="0" value="1.0">
+          <input id="rollGapInput" type="number" step="0.1" min="0" value="7">
         </div>
       </div>
 
@@ -251,7 +234,6 @@
       </div>
     </div>
 
-    <!-- Camera debug panel -->
     <div id="camera-debug">
       <strong>Camera</strong><br>
       x: <span id="cam-x">–</span><br>
@@ -272,6 +254,7 @@
     }
   </script>
 
-  <script type="module" src="./js/main_v2.js?v=2"></script>
+  <!-- Force GitHub Pages to load latest JS -->
+  <script type="module" src="./js/main_v2.js?v=3"></script>
 </body>
 </html>

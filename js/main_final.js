@@ -1,5 +1,5 @@
 // ===============================
-// main_final.js — WHITE-PURPLE PAPER + BROWN CORE
+// main_final.js — WHITE/PURPLE PAPER + BROWN CORE + FIXED LIGHTING
 // ===============================
 
 import * as THREE from "three";
@@ -38,6 +38,7 @@ const camDebugPanel = document.getElementById("camera-debug");
 const scene = new THREE.Scene();
 scene.background = null;
 
+// Camera
 const camera = new THREE.PerspectiveCamera(
   35,
   window.innerWidth / window.innerHeight,
@@ -45,7 +46,7 @@ const camera = new THREE.PerspectiveCamera(
   5000
 );
 
-// Renderer (WHITE-OPTIMIZED)
+// Renderer (white-optimized)
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   alpha: true,
@@ -59,29 +60,34 @@ renderer.toneMappingExposure = 1.0;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 0);
-renderer.domElement.style.backgroundColor = "#faf6eb";
+renderer.domElement.style.backgroundColor = "#faf6eb"; 
 
 container.appendChild(renderer.domElement);
 
-// Orbit controls
+// Controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // ------------------------------------------------
-// Lighting — tuned for white/purple paper
+// FIXED STUDIO LIGHTING — makes paper actually white
 // ------------------------------------------------
-scene.add(new THREE.AmbientLight(0xffffff, 0.18));
 
-const key = new THREE.DirectionalLight(0xffffff, 1.1);
-key.position.set(75, 95, 55);
+// Very low ambient
+scene.add(new THREE.AmbientLight(0xffffff, 0.05));
+
+// Key light (main)
+const key = new THREE.DirectionalLight(0xffffff, 2.2);
+key.position.set(90, 120, 70);
 scene.add(key);
 
-const fill = new THREE.DirectionalLight(0xffffff, 0.55);
-fill.position.set(-70, 45, -50);
+// Fill light (softens shadows)
+const fill = new THREE.DirectionalLight(0xffffff, 1.1);
+fill.position.set(-120, 60, -50);
 scene.add(fill);
 
-const rim = new THREE.DirectionalLight(0xffffff, 0.22);
-rim.position.set(0, 130, -100);
+// Rim light (edge definition)
+const rim = new THREE.DirectionalLight(0xffffff, 0.9);
+rim.position.set(0, 160, -120);
 scene.add(rim);
 
 // ------------------------------------------------
@@ -121,7 +127,7 @@ function readParams() {
 }
 
 // ------------------------------------------------
-// Subtle paper bump texture
+// Paper bump texture
 // ------------------------------------------------
 function createPaperBumpTexture() {
   const size = 64;
@@ -149,34 +155,38 @@ function createPaperBumpTexture() {
 const paperBumpTex = createPaperBumpTexture();
 
 // ------------------------------------------------
-// Roll builder — updated colors (purple paper + brown core)
+// Roll builder — NEW MATERIALS (purple white + brown core)
 // ------------------------------------------------
 function buildRoll(R_outer, R_coreOuter, L) {
   const group = new THREE.Group();
 
-  // PAPER SIDE — white with soft purple tint
+  // PAPER SIDE — white with light purple tint
   const paperSideMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0.96, 0.94, 1.0), // light lavender-white
-    roughness: 0.38,
+    color: new THREE.Color(0.96, 0.94, 1.0),
+    roughness: 0.55, // IMPORTANT for actually seeing the color
     metalness: 0,
     bumpMap: paperBumpTex,
-    bumpScale: 0.025
+    bumpScale: 0.03,
+    emissive: new THREE.Color(0.06, 0.06, 0.08), // subtle lift (fixes gray)
+    emissiveIntensity: 0.45
   });
 
-  // PAPER ENDS — slightly lighter purple
+  // PAPER END — slightly brighter
   const paperEndMat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(0.97, 0.95, 1.0),
-    roughness: 0.55,
+    roughness: 0.65,
     metalness: 0,
     bumpMap: paperBumpTex,
     bumpScale: 0.045,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    emissive: new THREE.Color(0.06, 0.06, 0.09),
+    emissiveIntensity: 0.45
   });
 
-  // CORE OUTER — cardboard brown
+  // CORE OUTER — brown cardboard
   const coreSideMat = new THREE.MeshStandardMaterial({
-    color: 0xb8925d, // warm brown
-    roughness: 0.75,
+    color: 0xb8925d,
+    roughness: 0.78,
     metalness: 0
   });
 
@@ -194,7 +204,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   const R_coreInner = Math.max(0, R_coreOuter - coreThickness);
   const bevelDepth = 0.9 * MM;
 
-  // SIDE
+  // SIDE CYLINDER
   const sideGeom = new THREE.CylinderGeometry(
     R_outer, R_outer,
     L - bevelDepth * 2,

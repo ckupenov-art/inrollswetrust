@@ -20,7 +20,6 @@
 
     body { display: flex; flex-direction: column; }
 
-    /* ================= HEADER ================= */
     header {
       padding: 0.8rem 1.4rem;
       display: flex;
@@ -32,12 +31,6 @@
       z-index: 10;
       font-size: 1rem;
     }
-
-    header .title-block {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
     header h1 {
       margin: 0;
       font-size: 1.15rem;
@@ -45,68 +38,40 @@
       letter-spacing: 0.12em;
       color: #e5e7eb;
     }
-    header span.subtitle {
-      font-size: 0.9rem;
-      color: #9ca3af;
-    }
-    #count-label {
-      font-size: 1rem;
-      color: #e5e7eb;
-      font-weight: 600;
-    }
+    header .subtitle { font-size: 0.9rem; color: #9ca3af; }
+    #count-label { font-size: 1rem; font-weight: 600; }
 
-    /* =============== SCENE + CANVAS =============== */
-    main {
-      position: relative;
-      flex: 1;
-    }
+    main { position: relative; flex: 1; }
 
-    #scene-container {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-    }
-
-    canvas {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      display: block;
-    }
+    #scene-container { position: absolute; inset: 0; z-index: 0; }
+    canvas { position: absolute; inset: 0; z-index: 1; }
 
     #hint {
       position: absolute;
-      left: 50%;
-      bottom: 0.8rem;
+      left: 50%; bottom: 0.8rem;
       transform: translateX(-50%);
       padding: 0.35rem 0.8rem;
       border-radius: 999px;
       background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
+      border: 1px solid rgba(148,163,184,0.5);
       font-size: 0.85rem;
       color: #9ca3af;
       pointer-events: none;
-      white-space: nowrap;
       z-index: 50;
     }
 
-    /* ================= UI PANEL ================= */
+    /* PREMIUM PANEL */
     #control-panel {
       position: absolute;
-      top: 1.4rem;
-      left: 1.4rem;
+      top: 1.4rem; left: 1.4rem;
       z-index: 20;
-
       backdrop-filter: blur(14px) saturate(160%);
-      background: rgba(22, 28, 41, 0.78);
+      background: rgba(22,28,41,0.78);
       border-radius: 1.2rem;
       padding: 1.6rem 1.8rem;
       border: 1px solid rgba(255,255,255,0.12);
       box-shadow: 0 12px 35px rgba(0,0,0,0.35);
-
-      min-width: 295px;
-      max-width: 340px;
-
+      min-width: 295px; max-width: 340px;
       color: #e7e9f0;
     }
 
@@ -114,7 +79,8 @@
       margin: 0 0 1.25rem;
       font-size: 1.2rem;
       font-weight: 600;
-      color: white;
+      letter-spacing: 0.02em;
+      color: #fff;
     }
 
     .field-group {
@@ -126,175 +92,141 @@
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
 
-    .field {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .field label {
-      flex: 1.2;
-      font-size: 1rem;
-      color: #d6daeb;
-    }
+    .field { display: flex; justify-content: space-between; gap: 1rem; }
+    .field label { font-size: 1rem; color: #d6daeb; font-weight: 500; }
 
     .field input {
-      width: 120px;
-      padding: 0.55rem 0.7rem;
+      width: 120px; padding: 0.55rem 0.7rem;
       border-radius: 0.55rem;
       border: 1px solid rgba(255,255,255,0.22);
       background: rgba(0,0,0,0.35);
-      color: white;
-      font-size: 1rem;
+      color: #f2f2f7; font-size: 1rem;
     }
 
-    #total-rolls {
-      font-weight: 600;
-      font-size: 1.05rem;
-      color: white;
-    }
+    #total-rolls { font-size: 1.05rem; font-weight: 600; }
 
-    .buttons-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.65rem;
-      margin-top: 0.8rem;
-    }
+    .buttons-row { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-top: 0.8rem; }
 
     button {
-      border: none;
-      padding: 0.65rem 1.2rem;
-      border-radius: 0.8rem;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 600;
-      background: linear-gradient(135deg, #7065ff, #5246e3);
-      color: white;
-      box-shadow: 0 4px 18px rgba(80,70,229,0.45);
+      border: none; padding: 0.65rem 1.2rem;
+      border-radius: 0.8rem; cursor: pointer;
+      font-size: 1rem; font-weight: 600;
+      background: linear-gradient(135deg,#7065ff,#5246e3);
+      color: white; box-shadow: 0 4px 18px rgba(80,70,229,0.45);
     }
-
     button.secondary {
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.18);
     }
 
-    /* CAMERA DEBUG */
     #camera-debug {
       position: absolute;
-      top: 1.4rem;
-      right: 1.4rem;
+      top: 1.4rem; right: 1.4rem;
       z-index: 20;
       backdrop-filter: blur(12px) saturate(160%);
       background: rgba(20,23,33,0.7);
       border-radius: 0.9rem;
       padding: 1rem 1.2rem;
       border: 1px solid rgba(255,255,255,0.1);
-      font-size: 0.95rem;
-      color: #dadcef;
+      font-size: 0.95rem; color: #dadcef;
       max-width: 240px;
     }
-
     #camera-debug strong {
-      color: white;
+      color: #fff; font-size: 1.05rem;
     }
   </style>
 </head>
 
 <body>
-  <header>
-    <div class="title-block">
-      <h1>3D Toilet Pack Generator</h1>
-      <span class="subtitle">Sideways rolls · Three.js</span>
-    </div>
-    <div><span id="count-label">– rolls</span></div>
-  </header>
+<header>
+  <div class="title-block">
+    <h1>3D Toilet Pack Generator</h1>
+    <span class="subtitle">Sideways rolls · Three.js</span>
+  </div>
+  <div><span id="count-label">– rolls</span></div>
+</header>
 
-  <main>
-    <div id="scene-container"></div>
-    <div id="hint">Left: Rotate · Right/Middle: Pan · Scroll: Zoom</div>
+<main>
+  <div id="scene-container"></div>
+  <div id="hint">Left: Rotate · Right/Middle: Pan · Scroll: Zoom</div>
 
-    <!-- ===================================
-         CONTROL PANEL (FINAL, CORRECTED)
-    ==================================== -->
-    <div id="control-panel">
-      <h2>Pack Settings</h2>
+  <!-- UPDATED PANEL WITH SWAPPED IDs -->
+  <div id="control-panel">
+    <h2>Pack Settings</h2>
 
-      <div class="field-group">
+    <div class="field-group">
 
-        <!-- (1) Rolls per Channel -->
-        <div class="field">
-          <label for="rollsPerRowInput">Rolls per Channel</label>
-          <input id="rollsPerRowInput" type="number" min="1" value="4">
-        </div>
-
-        <!-- (2) Rolls per Lane -->
-        <div class="field">
-          <label for="rowsPerLayerInput">Rolls per Lane</label>
-          <input id="rowsPerLayerInput" type="number" min="1" value="3">
-        </div>
-
-        <!-- (3) Rolls per Layer -->
-        <div class="field">
-          <label for="layersInput">Rolls per Layer</label>
-          <input id="layersInput" type="number" min="1" value="2">
-        </div>
-
-        <div class="field">
-          <label>Total rolls</label>
-          <span id="total-rolls">–</span>
-        </div>
+      <!-- Rolls per Lane → NEW ID: rollsPerLaneInput -->
+      <div class="field">
+        <label for="rollsPerLaneInput">Rolls per Lane</label>
+        <input id="rollsPerLaneInput" type="number" min="1" value="4">
       </div>
 
-      <div class="field-group">
-        <div class="field">
-          <label for="rollDiameterInput">Roll Ø (mm)</label>
-          <input id="rollDiameterInput" type="number" min="10" value="120">
-        </div>
-
-        <div class="field">
-          <label for="coreDiameterInput">Core Ø (mm)</label>
-          <input id="coreDiameterInput" type="number" min="5" value="45">
-        </div>
-
-        <div class="field">
-          <label for="rollHeightInput">Height (mm)</label>
-          <input id="rollHeightInput" type="number" min="10" value="100">
-        </div>
-
-        <div class="field">
-          <label for="rollGapInput">Roll gap (mm)</label>
-          <input id="rollGapInput" type="number" step="0.1" min="0" value="7">
-        </div>
+      <!-- Rolls per Channel → NEW ID: rollsPerChannelInput -->
+      <div class="field">
+        <label for="rollsPerChannelInput">Rolls per Channel</label>
+        <input id="rollsPerChannelInput" type="number" min="1" value="3">
       </div>
 
-      <div class="buttons-row">
-        <button id="generateBtn">Generate</button>
-        <button id="resetCameraBtn" class="secondary">Reset camera</button>
-        <button id="exportPngBtn" class="secondary">Export PNG</button>
+      <!-- Rolls per Layer stays the same -->
+      <div class="field">
+        <label for="layersInput">Rolls per Layer</label>
+        <input id="layersInput" type="number" min="1" value="2">
+      </div>
+
+      <div class="field">
+        <label>Total rolls</label>
+        <span id="total-rolls">–</span>
       </div>
     </div>
 
-    <div id="camera-debug">
-      <strong>Camera</strong><br>
-      x: <span id="cam-x">–</span><br>
-      y: <span id="cam-y">–</span><br>
-      z: <span id="cam-z">–</span><br>
-      <strong>Target</strong><br>
-      tx: <span id="cam-tx">–</span><br>
-      ty: <span id="cam-ty">–</span><br>
-      tz: <span id="cam-tz">–</span>
+    <div class="field-group">
+      <div class="field">
+        <label for="rollDiameterInput">Roll Ø (mm)</label>
+        <input id="rollDiameterInput" type="number" min="10" value="120">
+      </div>
+      <div class="field">
+        <label for="coreDiameterInput">Core Ø (mm)</label>
+        <input id="coreDiameterInput" type="number" min="5" value="45">
+      </div>
+      <div class="field">
+        <label for="rollHeightInput">Height (mm)</label>
+        <input id="rollHeightInput" type="number" min="10" value="100">
+      </div>
+      <div class="field">
+        <label for="rollGapInput">Roll gap (mm)</label>
+        <input id="rollGapInput" type="number" step="0.1" min="0" value="7">
+      </div>
     </div>
-  </main>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
-      }
-    }
-  </script>
+    <div class="buttons-row">
+      <button id="generateBtn">Generate</button>
+      <button id="resetCameraBtn" class="secondary">Reset camera</button>
+      <button id="exportPngBtn" class="secondary">Export PNG</button>
+    </div>
+  </div>
 
-  <script type="module" src="./js/main_final.js?v=9"></script>
+  <div id="camera-debug">
+    <strong>Camera</strong><br>
+    x: <span id="cam-x">–</span><br>
+    y: <span id="cam-y">–</span><br>
+    z: <span id="cam-z">–</span><br>
+    <strong>Target</strong><br>
+    tx: <span id="cam-tx">–</span><br>
+    ty: <span id="cam-ty">–</span><br>
+    tz: <span id="cam-tz">–</span>
+  </div>
+
+</main>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module" src="./js/main_final.js?v=9"></script>
 </body>
 </html>

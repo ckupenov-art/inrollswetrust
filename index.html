@@ -6,11 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
-    /* (CSS unchanged — premium UI) */
     * { box-sizing: border-box; }
     html, body {
-      margin: 0; padding: 0;
-      width: 100%; height: 100%;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background: transparent;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -19,74 +20,183 @@
 
     body { display: flex; flex-direction: column; }
 
+    /* ================= HEADER ================= */
     header {
       padding: 0.8rem 1.4rem;
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       background: #020617;
-      border-bottom: 1px solid rgba(148,163,184,0.4);
-      box-shadow: 0 4px 14px rgba(15,23,42,0.8);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.8);
       z-index: 10;
+      font-size: 1rem;
     }
-    header h1 { margin:0; font-size:1.15rem; text-transform:uppercase; }
-    header span.subtitle { font-size:0.9rem; color:#9ca3af; }
 
-    main { position: relative; flex: 1; }
-    #scene-container { position:absolute; inset:0; z-index:0; }
-    canvas { position:absolute; inset:0; z-index:1; display:block; }
+    header .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #e5e7eb;
+    }
+    header span.subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+    #count-label {
+      font-size: 1rem;
+      color: #e5e7eb;
+      font-weight: 600;
+    }
+
+    /* =============== SCENE + CANVAS =============== */
+    main {
+      position: relative;
+      flex: 1;
+    }
+
+    #scene-container {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: block;
+    }
 
     #hint {
-      position:absolute;
-      left:50%; bottom:0.8rem;
-      transform:translateX(-50%);
-      padding:0.35rem 0.8rem;
-      background:rgba(15,23,42,0.9);
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,0.5);
-      font-size:0.85rem;
-      color:#9ca3af;
-      z-index:50;
+      position: absolute;
+      left: 50%;
+      bottom: 0.8rem;
+      transform: translateX(-50%);
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      font-size: 0.85rem;
+      color: #9ca3af;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 50;
     }
 
-    /* PREMIUM PANEL */
+    /* ================= UI PANEL ================= */
     #control-panel {
-      position:absolute; top:1.4rem; left:1.4rem;
-      z-index:20;
-      backdrop-filter:blur(14px) saturate(160%);
-      background:rgba(22,28,41,0.78);
-      border-radius:1.2rem;
-      padding:1.6rem 1.8rem;
-      border:1px solid rgba(255,255,255,0.12);
-      box-shadow:0 12px 35px rgba(0,0,0,0.35);
-      min-width:295px; max-width:340px;
-    }
-    #control-panel h2 { margin:0 0 1.25rem; font-size:1.2rem; color:#fff; }
-    .field-group { display:flex;flex-direction:column;gap:0.85rem;margin-bottom:1.3rem;padding-bottom:0.8rem;border-bottom:1px solid rgba(255,255,255,0.08); }
-    .field { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
-    .field label { flex:1.2; font-size:1rem; color:#d6daeb; }
-    .field input {
-      width:120px; padding:0.55rem 0.7rem;
-      border-radius:0.55rem;
-      border:1px solid rgba(255,255,255,0.22);
-      background:rgba(0,0,0,0.35);
-      color:#f2f2f7; font-size:1rem;
-    }
-    .buttons-row { display:flex;flex-wrap:wrap;gap:0.65rem;margin-top:0.8rem; }
-    button {
-      padding:0.65rem 1.2rem; border-radius:0.8rem;
-      font-size:1rem; font-weight:600;
-      background:linear-gradient(135deg,#7065ff,#5246e3); color:white;
-      border:none; cursor:pointer;
-    }
-    button.secondary { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); }
+      position: absolute;
+      top: 1.4rem;
+      left: 1.4rem;
+      z-index: 20;
 
+      backdrop-filter: blur(14px) saturate(160%);
+      background: rgba(22, 28, 41, 0.78);
+      border-radius: 1.2rem;
+      padding: 1.6rem 1.8rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.35);
+
+      min-width: 295px;
+      max-width: 340px;
+
+      color: #e7e9f0;
+    }
+
+    #control-panel h2 {
+      margin: 0 0 1.25rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin-bottom: 1.3rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .field {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .field label {
+      flex: 1.2;
+      font-size: 1rem;
+      color: #d6daeb;
+    }
+
+    .field input {
+      width: 120px;
+      padding: 0.55rem 0.7rem;
+      border-radius: 0.55rem;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(0,0,0,0.35);
+      color: white;
+      font-size: 1rem;
+    }
+
+    #total-rolls {
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: white;
+    }
+
+    .buttons-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-top: 0.8rem;
+    }
+
+    button {
+      border: none;
+      padding: 0.65rem 1.2rem;
+      border-radius: 0.8rem;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #7065ff, #5246e3);
+      color: white;
+      box-shadow: 0 4px 18px rgba(80,70,229,0.45);
+    }
+
+    button.secondary {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    /* CAMERA DEBUG */
     #camera-debug {
-      position:absolute; top:1.4rem; right:1.4rem;
-      z-index:20;
-      backdrop-filter:blur(12px) saturate(160%);
-      background:rgba(20,23,33,0.7);
-      padding:1rem 1.2rem;
-      border-radius:0.9rem;
-      max-width:240px;
+      position: absolute;
+      top: 1.4rem;
+      right: 1.4rem;
+      z-index: 20;
+      backdrop-filter: blur(12px) saturate(160%);
+      background: rgba(20,23,33,0.7);
+      border-radius: 0.9rem;
+      padding: 1rem 1.2rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.95rem;
+      color: #dadcef;
+      max-width: 240px;
+    }
+
+    #camera-debug strong {
+      color: white;
     }
   </style>
 </head>
@@ -104,29 +214,27 @@
     <div id="scene-container"></div>
     <div id="hint">Left: Rotate · Right/Middle: Pan · Scroll: Zoom</div>
 
-    <!-- =======================
-         CONTROL PANEL (corrected labels)
-    ======================== -->
+    <!-- ===================================
+         CONTROL PANEL (FINAL, CORRECTED)
+    ==================================== -->
     <div id="control-panel">
       <h2>Pack Settings</h2>
 
       <div class="field-group">
 
-        <!-- Correct order + Correct SWAP -->
-
-        <!-- (1) Rolls per Channel (THIS NOW SHOWS rowsPerLayerInput) -->
+        <!-- (1) Rolls per Channel -->
         <div class="field">
-          <label for="rowsPerLayerInput">Rolls per Channel</label>
-          <input id="rowsPerLayerInput" type="number" min="1" value="3">
-        </div>
-
-        <!-- (2) Rolls per Lane (THIS NOW SHOWS rollsPerRowInput) -->
-        <div class="field">
-          <label for="rollsPerRowInput">Rolls per Lane</label>
+          <label for="rollsPerRowInput">Rolls per Channel</label>
           <input id="rollsPerRowInput" type="number" min="1" value="4">
         </div>
 
-        <!-- (3) Rolls per Layer (unchanged) -->
+        <!-- (2) Rolls per Lane -->
+        <div class="field">
+          <label for="rowsPerLayerInput">Rolls per Lane</label>
+          <input id="rowsPerLayerInput" type="number" min="1" value="3">
+        </div>
+
+        <!-- (3) Rolls per Layer -->
         <div class="field">
           <label for="layersInput">Rolls per Layer</label>
           <input id="layersInput" type="number" min="1" value="2">
@@ -143,14 +251,17 @@
           <label for="rollDiameterInput">Roll Ø (mm)</label>
           <input id="rollDiameterInput" type="number" min="10" value="120">
         </div>
+
         <div class="field">
           <label for="coreDiameterInput">Core Ø (mm)</label>
           <input id="coreDiameterInput" type="number" min="5" value="45">
         </div>
+
         <div class="field">
           <label for="rollHeightInput">Height (mm)</label>
           <input id="rollHeightInput" type="number" min="10" value="100">
         </div>
+
         <div class="field">
           <label for="rollGapInput">Roll gap (mm)</label>
           <input id="rollGapInput" type="number" step="0.1" min="0" value="7">
@@ -164,7 +275,6 @@
       </div>
     </div>
 
-    <!-- CAMERA DEBUG -->
     <div id="camera-debug">
       <strong>Camera</strong><br>
       x: <span id="cam-x">–</span><br>
@@ -185,6 +295,6 @@
     }
   </script>
 
-  <script type="module" src="./js/main_final.js?v=10"></script>
+  <script type="module" src="./js/main_final.js?v=9"></script>
 </body>
 </html>

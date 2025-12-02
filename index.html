@@ -31,6 +31,13 @@
       z-index: 10;
       font-size: 1rem;
     }
+
+    header .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
     header h1 {
       margin: 0;
       font-size: 1.15rem;
@@ -38,40 +45,68 @@
       letter-spacing: 0.12em;
       color: #e5e7eb;
     }
-    header .subtitle { font-size: 0.9rem; color: #9ca3af; }
-    #count-label { font-size: 1rem; font-weight: 600; }
 
-    main { position: relative; flex: 1; }
+    header span.subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
 
-    #scene-container { position: absolute; inset: 0; z-index: 0; }
-    canvas { position: absolute; inset: 0; z-index: 1; }
+    #count-label {
+      font-size: 1rem;
+      color: #e5e7eb;
+      font-weight: 600;
+    }
+
+    main {
+      position: relative;
+      flex: 1;
+    }
+
+    #scene-container {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: block;
+    }
 
     #hint {
       position: absolute;
-      left: 50%; bottom: 0.8rem;
+      left: 50%;
+      bottom: 0.8rem;
       transform: translateX(-50%);
       padding: 0.35rem 0.8rem;
       border-radius: 999px;
       background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148,163,184,0.5);
+      border: 1px solid rgba(148, 163, 184, 0.5);
       font-size: 0.85rem;
       color: #9ca3af;
       pointer-events: none;
+      white-space: nowrap;
       z-index: 50;
     }
 
-    /* PREMIUM PANEL */
+    /* PREMIUM UI BELOW */
+
     #control-panel {
       position: absolute;
-      top: 1.4rem; left: 1.4rem;
+      top: 1.4rem;
+      left: 1.4rem;
       z-index: 20;
       backdrop-filter: blur(14px) saturate(160%);
-      background: rgba(22,28,41,0.78);
+      -webkit-backdrop-filter: blur(14px) saturate(160%);
+      background: rgba(22, 28, 41, 0.78);
       border-radius: 1.2rem;
       padding: 1.6rem 1.8rem;
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 12px 35px rgba(0,0,0,0.35);
-      min-width: 295px; max-width: 340px;
+      min-width: 295px;
+      max-width: 340px;
       color: #e7e9f0;
     }
 
@@ -80,7 +115,7 @@
       font-size: 1.2rem;
       font-weight: 600;
       letter-spacing: 0.02em;
-      color: #fff;
+      color: #ffffff;
     }
 
     .field-group {
@@ -92,52 +127,61 @@
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
 
-    .field { display: flex; justify-content: space-between; gap: 1rem; }
-    .field label { font-size: 1rem; color: #d6daeb; font-weight: 500; }
+    .field {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .field label {
+      flex: 1.2;
+      font-size: 1rem;
+      color: #d6daeb;
+      font-weight: 500;
+    }
 
     .field input {
-      width: 120px; padding: 0.55rem 0.7rem;
+      width: 120px;
+      padding: 0.55rem 0.7rem;
       border-radius: 0.55rem;
       border: 1px solid rgba(255,255,255,0.22);
       background: rgba(0,0,0,0.35);
-      color: #f2f2f7; font-size: 1rem;
+      color: #f2f2f7;
+      font-size: 1rem;
+      transition: 0.15s ease;
     }
 
-    #total-rolls { font-size: 1.05rem; font-weight: 600; }
-
-    .buttons-row { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-top: 0.8rem; }
+    .buttons-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-top: 0.8rem;
+    }
 
     button {
-      border: none; padding: 0.65rem 1.2rem;
-      border-radius: 0.8rem; cursor: pointer;
-      font-size: 1rem; font-weight: 600;
-      background: linear-gradient(135deg,#7065ff,#5246e3);
-      color: white; box-shadow: 0 4px 18px rgba(80,70,229,0.45);
+      border: none;
+      padding: 0.65rem 1.2rem;
+      border-radius: 0.8rem;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #7065ff, #5246e3);
+      color: white;
+      box-shadow: 0 4px 18px rgba(80, 70, 229, 0.45);
+      transition: 0.17s ease;
     }
+
     button.secondary {
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.18);
-    }
-
-    #camera-debug {
-      position: absolute;
-      top: 1.4rem; right: 1.4rem;
-      z-index: 20;
-      backdrop-filter: blur(12px) saturate(160%);
-      background: rgba(20,23,33,0.7);
-      border-radius: 0.9rem;
-      padding: 1rem 1.2rem;
-      border: 1px solid rgba(255,255,255,0.1);
-      font-size: 0.95rem; color: #dadcef;
-      max-width: 240px;
-    }
-    #camera-debug strong {
-      color: #fff; font-size: 1.05rem;
+      color: #e8eaf2;
     }
   </style>
 </head>
 
 <body>
+
 <header>
   <div class="title-block">
     <h1>3D Toilet Pack Generator</h1>
@@ -150,25 +194,25 @@
   <div id="scene-container"></div>
   <div id="hint">Left: Rotate · Right/Middle: Pan · Scroll: Zoom</div>
 
-  <!-- UPDATED PANEL WITH SWAPPED IDs -->
+  <!-- CONTROL PANEL -->
   <div id="control-panel">
     <h2>Pack Settings</h2>
 
     <div class="field-group">
 
-      <!-- Rolls per Lane → NEW ID: rollsPerLaneInput -->
-      <div class="field">
-        <label for="rollsPerLaneInput">Rolls per Lane</label>
-        <input id="rollsPerLaneInput" type="number" min="1" value="4">
-      </div>
-
-      <!-- Rolls per Channel → NEW ID: rollsPerChannelInput -->
+      <!-- Rolls per Channel (ID changed) -->
       <div class="field">
         <label for="rollsPerChannelInput">Rolls per Channel</label>
-        <input id="rollsPerChannelInput" type="number" min="1" value="3">
+        <input id="rollsPerChannelInput" type="number" min="1" value="4">
       </div>
 
-      <!-- Rolls per Layer stays the same -->
+      <!-- Rolls per Lane (ID changed) -->
+      <div class="field">
+        <label for="rollsPerLaneInput">Rolls per Lane</label>
+        <input id="rollsPerLaneInput" type="number" min="1" value="3">
+      </div>
+
+      <!-- Rolls per Layer (same ID, label only) -->
       <div class="field">
         <label for="layersInput">Rolls per Layer</label>
         <input id="layersInput" type="number" min="1" value="2">
@@ -204,8 +248,10 @@
       <button id="resetCameraBtn" class="secondary">Reset camera</button>
       <button id="exportPngBtn" class="secondary">Export PNG</button>
     </div>
+
   </div>
 
+  <!-- Camera Debug -->
   <div id="camera-debug">
     <strong>Camera</strong><br>
     x: <span id="cam-x">–</span><br>
@@ -227,6 +273,7 @@
 }
 </script>
 
-<script type="module" src="./js/main_final.js?v=9"></script>
+<script type="module" src="./js/main_final.js?v=10"></script>
+
 </body>
 </html>

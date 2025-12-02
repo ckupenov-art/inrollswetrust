@@ -9,11 +9,10 @@ import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/cont
 const container       = document.getElementById("scene-container");
 const countLabel      = document.getElementById("count-label");
 
-// UPDATED IDS -------
+// NEW UPDATED IDS:
 const rollsPerChannelEl = document.getElementById("rollsPerChannelInput");
 const rollsPerLaneEl    = document.getElementById("rollsPerLaneInput");
 const rollsPerLayerEl   = document.getElementById("rollsPerLayerInput");
-// -------------------
 
 const rollDiameterEl  = document.getElementById("rollDiameterInput");
 const coreDiameterEl  = document.getElementById("coreDiameterInput");
@@ -66,17 +65,17 @@ controls.enableDamping = true;
 // ------------------------------------------------
 scene.add(new THREE.AmbientLight(0xffffff, 0.05));
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-keyLight.position.set(90, 120, 70);
-scene.add(keyLight);
+const key = new THREE.DirectionalLight(0xffffff, 2.2);
+key.position.set(90, 120, 70);
+scene.add(key);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 1.1);
-fillLight.position.set(-120, 60, -50);
-scene.add(fillLight);
+const fill = new THREE.DirectionalLight(0xffffff, 1.1);
+fill.position.set(-120, 60, -50);
+scene.add(fill);
 
-const rimLight = new THREE.DirectionalLight(0xffffff, 0.9);
-rimLight.position.set(0, 160, -120);
-scene.add(rimLight);
+const rim = new THREE.DirectionalLight(0xffffff, 0.9);
+rim.position.set(0, 160, -120);
+scene.add(rim);
 
 // ------------------------------------------------
 // CONSTANTS
@@ -102,9 +101,10 @@ function getFloat(el, fallback) {
 
 function readParams() {
   return {
-    rollsPerChannel: getInt(rollsPerChannelEl, 4), // WAS rollsPerRow
-    rollsPerLane:    getInt(rollsPerLaneEl, 3),    // WAS rowsPerLayer
-    rollsPerLayer:   getInt(rollsPerLayerEl, 2),   // WAS layers
+    // NEW IDS:
+    rollsPerChannel: getInt(rollsPerChannelEl, 4),
+    rollsPerLane:    getInt(rollsPerLaneEl, 3),
+    rollsPerLayer:   getInt(rollsPerLayerEl, 2),
 
     rollDiameterMm: getFloat(rollDiameterEl, 120),
     coreDiameterMm: getFloat(coreDiameterEl, 45),
@@ -175,7 +175,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   const coreSideMat = new THREE.MeshStandardMaterial({
     color: 0xb8925d,
     roughness: 0.78,
-    metalness: 0.0,
+    metalness: 0.0
   });
 
   const coreInnerMat = new THREE.MeshStandardMaterial({
@@ -187,10 +187,13 @@ function buildRoll(R_outer, R_coreOuter, L) {
     emissiveIntensity: 0.55
   });
 
-  const R_coreInner = Math.max(0, R_coreOuter - 1.2 * MM);
+  const coreEndMat = coreSideMat;
+
+  const coreThickness = 1.2 * MM;
+  const R_coreInner = Math.max(0, R_coreOuter - coreThickness);
   const bevelDepth = 0.9 * MM;
 
-  // SIDE
+  // Outer paper side
   const sideGeom = new THREE.CylinderGeometry(
     R_outer, R_outer,
     L - bevelDepth * 2,
@@ -199,7 +202,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   sideGeom.rotateZ(Math.PI / 2);
   group.add(new THREE.Mesh(sideGeom, paperSideMat));
 
-  // BEVELS
+  // Bevels
   const bevelGeom = new THREE.CylinderGeometry(
     R_outer, R_outer,
     bevelDepth,
@@ -215,7 +218,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   bevelBack.position.x = -L/2 + bevelDepth/2;
   group.add(bevelBack);
 
-  // PAPER ENDS
+  // Paper ends
   const endRingGeom = new THREE.RingGeometry(R_coreOuter, R_outer, 64);
 
   const endFront = new THREE.Mesh(endRingGeom, paperEndMat);
@@ -228,7 +231,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   endBack.rotation.y = -Math.PI / 2;
   group.add(endBack);
 
-  // CORE OUTER
+  // Core outer
   const coreOuterGeom = new THREE.CylinderGeometry(
     R_coreOuter, R_coreOuter,
     L * 0.97,
@@ -237,7 +240,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   coreOuterGeom.rotateZ(Math.PI / 2);
   group.add(new THREE.Mesh(coreOuterGeom, coreSideMat));
 
-  // CORE INNER
+  // Core inner
   const coreInnerGeom = new THREE.CylinderGeometry(
     R_coreInner, R_coreInner,
     L * 0.97,
@@ -246,10 +249,10 @@ function buildRoll(R_outer, R_coreOuter, L) {
   coreInnerGeom.rotateZ(Math.PI / 2);
   group.add(new THREE.Mesh(coreInnerGeom, coreInnerMat));
 
-  // CORE END RINGS
+  // Core end rings
   const coreEndRingGeom = new THREE.RingGeometry(R_coreInner, R_coreOuter, 48);
 
-  const coreFront = new THREE.Mesh(coreEndRingGeom, coreSideMat);
+  const coreFront = new THREE.Mesh(coreEndRingGeom, coreEndMat);
   coreFront.position.x = L/2;
   coreFront.rotation.y = Math.PI / 2;
   group.add(coreFront);
@@ -284,7 +287,6 @@ function generatePack() {
   const spacingY = D + EPS;
   const spacingZ = D + EPS;
 
-  // UPDATED NAMES
   const offsetX = -((p.rollsPerChannel - 1) * spacingX) / 2;
   const offsetZ = -((p.rollsPerLane    - 1) * spacingZ) / 2;
   const baseY   = -((p.rollsPerLayer   - 1) * spacingY) / 2;
@@ -296,8 +298,8 @@ function generatePack() {
       for (let channel = 0; channel < p.rollsPerChannel; channel++) {
 
         const x = offsetX + channel * spacingX;
-        const y = baseY   + layer * spacingY;
-        const z = offsetZ + lane * spacingZ;
+        const y = baseY   + layer    * spacingY;
+        const z = offsetZ + lane     * spacingZ;
 
         const roll = buildRoll(R_outer, R_core, L);
         roll.position.set(x, y, z);
@@ -312,7 +314,7 @@ function generatePack() {
 }
 
 // ------------------------------------------------
-// Camera helper
+// Camera
 // ------------------------------------------------
 function setDefaultCamera() {
   camera.position.set(115.72, 46.43, -81.27);

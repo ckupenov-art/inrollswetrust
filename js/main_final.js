@@ -1,12 +1,9 @@
 // ===============================
-// main_final.js – enhanced version
+// main_final.js – corrected, realistic, no bloom
 // ===============================
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
-import { EffectComposer } from "https://unpkg.com/three@0.165.0/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "https://unpkg.com/three@0.165.0/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "https://unpkg.com/three@0.165.0/examples/jsm/postprocessing/UnrealBloomPass.js";
 
 // ------------------------------------------------
 // DOM
@@ -39,31 +36,7 @@ const camDebugPanel = document.getElementById("camera-debug");
 // Scene + Renderer
 // ------------------------------------------------
 const scene = new THREE.Scene();
-
-// --- Background Gradient (Large shader plane behind objects)
-const gradGeo = new THREE.PlaneGeometry(5000, 5000);
-const gradMat = new THREE.ShaderMaterial({
-  uniforms: {
-    color1: { value: new THREE.Color("#e8e4da") },
-    color2: { value: new THREE.Color("#cfc8b6") }
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
-    }`,
-  fragmentShader: `
-    uniform vec3 color1;
-    uniform vec3 color2;
-    varying vec2 vUv;
-    void main() {
-      gl_FragColor = vec4(mix(color1, color2, vUv.y), 1.0);
-    }`
-});
-const backgroundPlane = new THREE.Mesh(gradGeo, gradMat);
-backgroundPlane.position.set(0, 0, -2000);
-scene.add(backgroundPlane);
+scene.background = null;
 
 const camera = new THREE.PerspectiveCamera(
   35,
@@ -78,55 +51,51 @@ const renderer = new THREE.WebGLRenderer({
   preserveDrawingBuffer: true
 });
 
-// --- Improved output & tone mapping
+// 🔧 FIX: Use linear tone mapping (prevents blown-out whites)
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.toneMapping = THREE.LinearToneMapping;
+renderer.toneMappingExposure = 1.0;
 
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0); // canvas transparent
+renderer.domElement.style.backgroundColor = "#e8e4da"; // UI beige
+
 container.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // ------------------------------------------------
-// Post-processing (Bloom)
+// Lighting — realistic, non-blown-out
 // ------------------------------------------------
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
 
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.35,    // strength
-  0.9,     // radius
-  0.0      // threshold
-);
-composer.addPass(bloomPass);
+// Soft ambient
+scene.add(new THREE.AmbientLight(0xffffff, 0.20));
 
-// ------------------------------------------------
-// Lighting — Product-style, high contrast
-// ------------------------------------------------
-scene.add(new THREE.AmbientLight(0xffffff, 0.15));
-
-const key = new THREE.DirectionalLight(0xffffff, 1.35);
-key.position.set(80, 120, 60);
+// Main key light
+const key = new THREE.DirectionalLight(0xffffff, 0.55);
+key.position.set(60, 80, 60);
 scene.add(key);
 
-const fill = new THREE.DirectionalLight(0xffffff, 0.45);
-fill.position.set(-60, 40, -40);
+// Fill light
+const fill = new THREE.DirectionalLight(0xffffff, 0.25);
+fill.position.set(-50, 40, -50);
 scene.add(fill);
 
-const rim = new THREE.DirectionalLight(0xffffff, 0.55);
-rim.position.set(0, 120, -120);
+// Rim light
+const rim = new THREE.DirectionalLight(0xffffff, 0.18);
+rim.position.set(0, 120, -80);
 scene.add(rim);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xdedede, 0.3));
+// Gentle sky/ground colors
+const hemi = new THREE.HemisphereLight(0xffffff, 0xdddddd, 0.25);
+scene.add(hemi);
 
 // ------------------------------------------------
 // CONSTANTS
 // ------------------------------------------------
-const MM  = 0.1;
+const MM  = 0.1; // scale factor
 const EPS = 0.01;
 
 const packGroup = new THREE.Group();
@@ -160,7 +129,7 @@ function readParams() {
 }
 
 // ------------------------------------------------
-// Paper bump texture
+// Subtle paper bump texture
 // ------------------------------------------------
 function createPaperBumpTexture() {
   const size = 64;
@@ -174,8 +143,8 @@ function createPaperBumpTexture() {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4;
-      const base = 185 + Math.random() * 25;
-      const gradient = (y / size) * 20;
+      const base = 190 + Math.random() * 20;
+      const gradient = (y / size) * 15;
       const shade = base + gradient;
       d[i] = d[i+1] = d[i+2] = shade;
       d[i+3] = 255;
@@ -191,37 +160,37 @@ function createPaperBumpTexture() {
 const paperBumpTex = createPaperBumpTexture();
 
 // ------------------------------------------------
-// Roll builder
+// Roll builder — correct contrast
 // ------------------------------------------------
 function buildRoll(R_outer, R_coreOuter, L) {
   const group = new THREE.Group();
 
   const paperSideMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    roughness: 0.28,
+    color: 0xf5f5f5,
+    roughness: 0.55,
     metalness: 0,
     bumpMap: paperBumpTex,
-    bumpScale: 0.06
+    bumpScale: 0.04
   });
 
   const paperEndMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    roughness: 0.5,
+    color: 0xf8f8f8,
+    roughness: 0.65,
     metalness: 0,
-    side: THREE.DoubleSide,
     bumpMap: paperBumpTex,
-    bumpScale: 0.12
+    bumpScale: 0.07,
+    side: THREE.DoubleSide
   });
 
   const coreSideMat = new THREE.MeshStandardMaterial({
-    color: 0xc7a46a,   // more cardboard-like
-    roughness: 0.82,
+    color: 0xc49a6c, // warm cardboard
+    roughness: 0.75,
     metalness: 0
   });
 
   const holeMat = new THREE.MeshStandardMaterial({
-    color: 0xdadada,
-    roughness: 0.9,
+    color: 0xd0d0d0,
+    roughness: 0.85,
     metalness: 0,
     side: THREE.DoubleSide
   });
@@ -279,7 +248,7 @@ function buildRoll(R_outer, R_coreOuter, L) {
   coreOuterGeom.rotateZ(Math.PI / 2);
   group.add(new THREE.Mesh(coreOuterGeom, coreSideMat));
 
-  // HOLLOW INNER
+  // CORE INNER
   const coreInnerGeom = new THREE.CylinderGeometry(
     R_coreInner, R_coreInner,
     L * 0.97,
@@ -354,7 +323,7 @@ function generatePack() {
 }
 
 // ------------------------------------------------
-// Camera (restored)
+// Camera positioning
 // ------------------------------------------------
 function setDefaultCamera() {
   camera.position.set(115.72, 46.43, -81.27);
@@ -367,9 +336,9 @@ function resetCamera() {
 }
 
 // ------------------------------------------------
-// Export PNG (Hi-Res + optional transparency)
+// Export PNG (hi-res)
 // ------------------------------------------------
-async function exportPNG() {
+function exportPNG() {
   const prevDebug = camDebugPanel.style.display;
   camDebugPanel.style.display = "none";
 
@@ -382,9 +351,7 @@ async function exportPNG() {
 
   renderer.setSize(w, h);
   renderer.setPixelRatio(1);
-
-  composer.setSize(w, h);
-  composer.render();
+  renderer.render(scene, camera);
 
   const url = renderer.domElement.toDataURL("image/png");
 
@@ -395,8 +362,6 @@ async function exportPNG() {
 
   renderer.setSize(prevSize.x, prevSize.y);
   renderer.setPixelRatio(prevPixelRatio);
-  composer.setSize(prevSize.x, prevSize.y);
-
   camDebugPanel.style.display = prevDebug;
 }
 
@@ -427,7 +392,6 @@ window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
 });
 
 // ------------------------------------------------
@@ -437,6 +401,6 @@ function animate() {
   requestAnimationFrame(animate);
   controls.update();
   updateCameraDebug();
-  composer.render();
+  renderer.render(scene, camera);
 }
 animate();

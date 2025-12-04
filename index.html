@@ -55,10 +55,10 @@
       border-radius: 1.2rem;
       padding: 1.6rem 1.8rem;
       min-width: 330px;
-      max-width: 360px;
+      max-width: 330px;   /* fixed width = no overflow issues */
       color: #e7e9f0;
       border: 1px solid rgba(255,255,255,0.12);
-      overflow: visible; /* fix button clipping */
+      overflow: hidden;   /* clean edges */
     }
 
     #control-panel h2 {
@@ -68,32 +68,58 @@
     }
 
     .field-group { 
-      display: flex; flex-direction: column; gap: 0.85rem; 
-      margin-bottom: 1.2rem; padding-bottom: 0.8rem; 
-      border-bottom: 1px solid rgba(255,255,255,0.1); 
+      display: flex; flex-direction: column; gap: 0.85rem;
+      margin-bottom: 1.2rem; padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
-    .field { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-    .field label { flex: 1.2; font-size: 1rem; color: #d6daeb; }
+    .field {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .field label {
+      flex: 1.2;
+      font-size: 1rem;
+      color: #d6daeb;
+    }
 
     .field input {
-      width: 120px; padding: 0.55rem 0.7rem;
+      width: 120px;
+      padding: 0.55rem 0.7rem;
       border-radius: 0.55rem;
       border: 1px solid rgba(255,255,255,0.22);
       background: rgba(0,0,0,0.35);
-      color: #fff; font-size: 1rem;
+      color: #fff;
+      font-size: 1rem;
     }
 
-    #total-rolls { font-size: 1.05rem; font-weight: 600; }
+    #total-rolls {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
 
-    .buttons-row { display: flex; gap: 0.65rem; margin-top: 0.7rem; }
+    /* BUTTONS */
+    .buttons-row {
+      display: flex;
+      flex-wrap: wrap;     /* <— makes all buttons always visible */
+      gap: 0.65rem;
+      margin-top: 0.7rem;
+    }
 
-    button {
-      padding: 0.6rem 1.2rem; border-radius: 0.8rem;
-      cursor: pointer; font-size: 1rem; font-weight: 600;
+    .buttons-row button {
+      flex: 1 1 auto;       /* <— allows scaling */
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.8rem;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
       background: linear-gradient(135deg, #7065ff, #5246e3);
-      color: white; border: none;
-      white-space: nowrap; /* prevent clipping */
+      color: white;
+      border: none;
+      white-space: nowrap;
     }
 
     button.secondary {
@@ -136,19 +162,19 @@
 
       <div class="field-group">
 
-        <!-- CHANNEL = Z axis (NOW FIRST) -->
+        <!-- CHANNEL = Z axis -->
         <div class="field">
           <label for="rollsPerChannelInput">Rolls per Channel</label>
           <input id="rollsPerChannelInput" type="number" min="1" value="3">
         </div>
 
-        <!-- LANE = X axis (NOW SECOND) -->
+        <!-- LANE = X axis -->
         <div class="field">
           <label for="rollsPerLaneInput">Rolls per Lane</label>
           <input id="rollsPerLaneInput" type="number" min="1" value="4">
         </div>
 
-        <!-- LAYER = Y axis (NOW LAST) -->
+        <!-- LAYER = Y axis -->
         <div class="field">
           <label for="rollsPerLayerInput">Rolls per Layer</label>
           <input id="rollsPerLayerInput" type="number" min="1" value="2">
@@ -202,6 +228,6 @@
     { "imports": { "three": "https://unpkg.com/three@0.165.0/build/three.module.js" } }
   </script>
 
-  <script type="module" src="./js/main_final.js?v=101"></script>
+  <script type="module" src="./js/main_final.js?v=102"></script>
 </body>
 </html>

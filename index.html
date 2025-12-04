@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <title>In Rolls We Trust</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 
   <style>
     * { box-sizing: border-box; }
+
     html, body {
       margin: 0; padding: 0;
       width: 100%; height: 100%;
-      overflow: hidden;
       font-family: system-ui, sans-serif;
-      background: transparent;
+      overflow: hidden;
+      background: #e8e4da;
     }
-
-    body { display: flex; flex-direction: column; }
 
     /* DESKTOP HEADER */
     header {
@@ -26,28 +26,31 @@
       background: #020617;
       border-bottom: 1px solid rgba(148,163,184,0.4);
       color: #e5e7eb;
+      z-index: 100;        /* keep header above canvas */
+      position: relative;
     }
     header h1 { margin: 0; font-size: 1.15rem; letter-spacing: 0.12em; }
-
     @media (max-width: 800px) { header { display: none; } }
 
-    /* MAIN CANVAS AREA */
+    /* MAIN AREA */
     main {
       position: relative;
       flex: 1;
       overflow: hidden;
+      height: 100%;
     }
 
     #scene-container {
       position: absolute;
       inset: 0;
-      z-index: 0;
+      z-index: 1; /* canvas BELOW menu */
     }
+
     canvas {
       position: absolute;
       inset: 0;
-      z-index: 1;
       display: block;
+      z-index: 1;
     }
 
     #hint {
@@ -57,10 +60,10 @@
       transform: translateX(-50%);
       background: rgba(15,23,42,0.9);
       padding: 0.35rem 0.8rem;
-      border-radius: 999px;
+      border-radius: 1rem;
       color: #9ca3af;
-      font-size: 0.85rem;
       z-index: 50;
+      font-size: 0.85rem;
     }
 
     /* DESKTOP PANEL */
@@ -69,58 +72,62 @@
       top: 1.4rem;
       left: 1.4rem;
       width: 330px;
-      backdrop-filter: blur(14px) saturate(160%);
-      background: rgba(22, 28, 41, 0.78);
-      border-radius: 1.2rem;
       padding: 1.6rem 1.8rem;
+      background: rgba(22,28,41,0.78);
+      border-radius: 1.2rem;
+      backdrop-filter: blur(14px) saturate(160%);
       border: 1px solid rgba(255,255,255,0.12);
-      z-index: 20;
       color: #e7e9f0;
-      overflow: hidden;
-      transition: transform .3s ease;
+      z-index: 200; /* ABOVE canvas */
+      transition: transform 0.35s ease;
     }
 
-    /* MOBILE PANEL → bottom drawer (fixed height) */
+    /* MOBILE PANEL — bulletproof drawer (always works) */
     @media (max-width: 800px) {
       #control-panel {
         position: fixed;
         left: 0; right: 0;
         bottom: 0;
-        height: 50vh;               /* ← FIXED DRAWER HEIGHT (50%) */
+        width: 100%;
+        height: 50vh;        /* FIXED OPEN HEIGHT */
         transform: translateY(0%);
         border-radius: 1.2rem 1.2rem 0 0;
         padding: 1.4rem;
-        width: 100%;
+        z-index: 200;
       }
 
-      /* COLLAPSED STATE → only 48px visible */
+      /* COLLAPSED — push down by 90% of its height */
       body.mobile-collapsed #control-panel {
-        transform: translateY(calc(50vh - 48px));
+        transform: translateY(90%);
       }
 
-      #hint { bottom: 52vh; } /* keep hint above drawer */
+      #hint {
+        bottom: 52vh; /* keep hint above drawer */
+      }
     }
 
     /* MOBILE TOGGLE BUTTON */
     #mobile-toggle-btn {
       display: none;
       position: fixed;
-      bottom: 0.4rem;
+      bottom: 0.6rem;
       left: 50%;
       transform: translateX(-50%);
       padding: 0.55rem 1.3rem;
       background: rgba(40,45,65,0.9);
       color: #f0f0f0;
       border-radius: 0.7rem;
-      font-size: 1rem;
-      font-weight: 600;
       border: 1px solid rgba(255,255,255,0.15);
       backdrop-filter: blur(10px);
-      z-index: 40;
+      z-index: 500; /* always on top */
+      font-size: 1rem;
+      font-weight: 600;
     }
-    @media (max-width: 800px) { #mobile-toggle-btn { display: block; } }
+    @media (max-width: 800px) {
+      #mobile-toggle-btn { display: block; }
+    }
 
-    /* INPUT GROUPS */
+    /* INPUT groups */
     .field-group {
       display: flex;
       flex-direction: column;
@@ -129,11 +136,16 @@
       padding-bottom: 0.8rem;
       border-bottom: 1px solid rgba(255,255,255,0.1);
     }
-    .field { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-    .field label { flex: 1.2; color: #d6daeb; }
+    .field {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .field label { color: #d6daeb; flex: 1.2; }
     .field input {
       width: 120px;
-      padding: 0.55rem 0.7rem;
+      padding: 0.55rem;
       border-radius: 0.55rem;
       border: 1px solid rgba(255,255,255,0.22);
       background: rgba(0,0,0,0.35);
@@ -141,7 +153,6 @@
       font-size: 1rem;
     }
 
-    /* MOBILE INPUTS STACK */
     @media (max-width: 800px) {
       .field { flex-direction: column; align-items: flex-start; }
       .field input { width: 100%; }
@@ -158,35 +169,41 @@
       flex: 1 1 auto;
       padding: 0.6rem 1.2rem;
       border-radius: 0.8rem;
-      font-size: 1rem;
-      font-weight: 600;
-      white-space: nowrap;
       border: none;
       cursor: pointer;
-      background: linear-gradient(135deg, #7065ff, #5246e3);
+      white-space: nowrap;
+      font-weight: 600;
+      background: linear-gradient(135deg,#7065ff,#5246e3);
       color: white;
+      font-size: 1rem;
     }
-    .buttons-row .secondary {
+    button.secondary {
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.18);
     }
 
-    /* HIDE CAMERA DEBUG ON MOBILE */
+    /* CAMERA DEBUG (desktop only) */
+    #camera-debug {
+      position: absolute;
+      top: 1.4rem;
+      right: 1.4rem;
+      padding: 1rem;
+      border-radius: 0.9rem;
+      background: rgba(20,23,33,0.75);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #dadcef;
+      font-size: 0.95rem;
+      z-index: 300;
+    }
     @media (max-width: 800px) {
       #camera-debug { display: none; }
     }
-
-    #camera-debug {
-      position: absolute; top: 1.4rem; right: 1.4rem;
-      background: rgba(20,23,33,0.75);
-      padding: 1rem 1.2rem;
-      border-radius: 0.9rem;
-      color: #dadcef;
-      border: 1px solid rgba(255,255,255,0.1);
-      z-index: 30;
-    }
   </style>
 </head>
+
+
+
+<!-- BODY -->
 
 <body>
 
@@ -199,23 +216,25 @@
 
   <main>
     <div id="scene-container"></div>
-    <div id="hint">Rotate: Drag · Pan: Two Fingers · Zoom: Pinch</div>
+
+    <div id="hint">Drag: Rotate • Two fingers: Pan • Pinch: Zoom</div>
 
     <div id="control-panel">
+
       <h2>Pack Settings</h2>
 
       <div class="field-group">
-        <div class="field"><label for="rollsPerChannelInput">Rolls per Channel</label><input id="rollsPerChannelInput" type="number" min="1" value="3"></div>
-        <div class="field"><label for="rollsPerLaneInput">Rolls per Lane</label><input id="rollsPerLaneInput" type="number" min="1" value="4"></div>
-        <div class="field"><label for="rollsPerLayerInput">Rolls per Layer</label><input id="rollsPerLayerInput" type="number" min="1" value="2"></div>
+        <div class="field"><label>Rolls per Channel</label><input id="rollsPerChannelInput" type="number" value="3"></div>
+        <div class="field"><label>Rolls per Lane</label><input id="rollsPerLaneInput" type="number" value="4"></div>
+        <div class="field"><label>Rolls per Layer</label><input id="rollsPerLayerInput" type="number" value="2"></div>
         <div class="field"><label>Total rolls</label><span id="total-rolls">–</span></div>
       </div>
 
       <div class="field-group">
-        <div class="field"><label for="rollDiameterInput">Roll Ø (mm)</label><input id="rollDiameterInput" type="number" value="120"></div>
-        <div class="field"><label for="coreDiameterInput">Core Ø (mm)</label><input id="coreDiameterInput" type="number" value="45"></div>
-        <div class="field"><label for="rollHeightInput">Height (mm)</label><input id="rollHeightInput" type="number" value="100"></div>
-        <div class="field"><label for="rollGapInput">Roll gap (mm)</label><input id="rollGapInput" type="number" value="7"></div>
+        <div class="field"><label>Roll Ø (mm)</label><input id="rollDiameterInput" type="number" value="120"></div>
+        <div class="field"><label>Core Ø (mm)</label><input id="coreDiameterInput" type="number" value="45"></div>
+        <div class="field"><label>Height (mm)</label><input id="rollHeightInput" type="number" value="100"></div>
+        <div class="field"><label>Roll gap (mm)</label><input id="rollGapInput" type="number" value="7"></div>
       </div>
 
       <div class="buttons-row">
@@ -223,6 +242,7 @@
         <button id="resetCameraBtn" class="secondary">Reset Camera</button>
         <button id="exportPngBtn" class="secondary">Export PNG</button>
       </div>
+
     </div>
 
     <div id="camera-debug">
@@ -235,9 +255,12 @@
     </div>
   </main>
 
+
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.165.0/build/three.module.js" } }
   </script>
-  <script type="module" src="./js/main_final.js?v=300"></script>
+
+  <script type="module" src="./js/main_final.js?v=400"></script>
+
 </body>
 </html>

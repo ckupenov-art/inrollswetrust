@@ -1,18 +1,19 @@
-// main_final.js — FINAL MOBILE-STABLE VERSION
+// main_final.js — desktop + mobile with 3-state bottom sheet
 // LANE = X | CHANNEL = Z | LAYER = Y
 
 import * as THREE from "three";
 import { OrbitControls } from "https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js";
 
 // ---------------------------------------------------------
-// DOM references
+// DOM
 // ---------------------------------------------------------
 
 const container = document.getElementById("scene-container");
+const countLabel = document.getElementById("count-label");
 
-const rollsPerLaneEl      = document.getElementById("rollsPerLaneInput");
-const rollsPerChannelEl   = document.getElementById("rollsPerChannelInput");
-const rollsPerLayerEl     = document.getElementById("rollsPerLayerInput");
+const rollsPerLaneEl    = document.getElementById("rollsPerLaneInput");
+const rollsPerChannelEl = document.getElementById("rollsPerChannelInput");
+const rollsPerLayerEl   = document.getElementById("rollsPerLayerInput");
 
 const rollDiameterEl = document.getElementById("rollDiameterInput");
 const coreDiameterEl = document.getElementById("coreDiameterInput");
@@ -20,43 +21,160 @@ const rollHeightEl   = document.getElementById("rollHeightInput");
 const rollGapEl      = document.getElementById("rollGapInput");
 
 const totalRollsEl = document.getElementById("total-rolls");
-const countLabel   = document.getElementById("count-label");
 
 const generateBtn    = document.getElementById("generateBtn");
 const resetCameraBtn = document.getElementById("resetCameraBtn");
 const exportPngBtn   = document.getElementById("exportPngBtn");
 
 const camDebugPanel = document.getElementById("camera-debug");
-const camXEl = document.getElementById("cam-x");
-const camYEl = document.getElementById("cam-y");
-const camZEl = document.getElementById("cam-z");
+const camXEl  = document.getElementById("cam-x");
+const camYEl  = document.getElementById("cam-y");
+const camZEl  = document.getElementById("cam-z");
 const camTxEl = document.getElementById("cam-tx");
 const camTyEl = document.getElementById("cam-ty");
 const camTzEl = document.getElementById("cam-tz");
 
 const mobileToggleBtn = document.getElementById("mobile-toggle-btn");
+const controlPanel = document.getElementById("control-panel");
 
 // ---------------------------------------------------------
-// MOBILE DETECTION (bulletproof)
+// Mobile bottom sheet logic (S2: collapsed / half / full)
 // ---------------------------------------------------------
 
 const isMobile = window.matchMedia("(max-width: 800px)").matches;
 
-// Initially collapse only if height < 700px
-if (isMobile && window.innerHeight < 700) {
-  document.body.classList.add("mobile-collapsed");
+const SheetState = {
+  COLLAPSED: "collapsed",
+  HALF: "half",
+  FULL: "full"
+};
+
+let sheetState = SheetState.HALF;
+let sheetOffsets = { collapsed: 0, half: 0, full: 0 };
+let currentOffsetPx = 0;
+
+// compute real viewport height and offsets
+function updateViewportHeight() {
+  const vh = window.innerHeight;
+  document.documentElement.style.setProperty("--vh", vh + "px");
+
+  sheetOffsets.full = 0;
+  sheetOffsets.half = vh * 0.45;          // ~45% visible sheet
+  sheetOffsets.collapsed = vh - 56;       // show ~56px bar
+
+  applySheetState(sheetState, false);
 }
 
-// Toggle drawer (Safari reflow included)
-mobileToggleBtn?.addEventListener("click", () => {
-  document.body.classList.toggle("mobile-collapsed");
+function applySheetState(state, animate = true) {
+  sheetState = state;
 
-  // IMPORTANT SAFARI FIX — force reflow
-  void document.body.offsetHeight;
-});
+  let offset;
+  if (state === SheetState.FULL) offset = sheetOffsets.full;
+  else if (state === SheetState.HALF) offset = sheetOffsets.half;
+  else offset = sheetOffsets.collapsed;
+
+  currentOffsetPx = offset;
+  document.documentElement.style.setProperty(
+    "--sheet-translateY",
+    offset + "px"
+  );
+
+  if (!animate) {
+    // Safari sometimes needs a reflow “kick”
+    void document.body.offsetHeight;
+  }
+
+  // toggle button label
+  if (mobileToggleBtn) {
+    if (sheetState === SheetState.COLLAPSED) {
+      mobileToggleBtn.textContent = "Pack Settings";
+    } else if (sheetState === SheetState.HALF) {
+      mobileToggleBtn.textContent = "Pack Settings ▲";
+    } else {
+      mobileToggleBtn.textContent = "Close ▲";
+    }
+  }
+}
+
+if (isMobile) {
+  // initial state: collapsed if very short screens, else half
+  sheetState = window.innerHeight < 700 ? SheetState.COLLAPSED : SheetState.HALF;
+  updateViewportHeight();
+
+  window.addEventListener("resize", () => updateViewportHeight());
+  window.addEventListener("orientationchange", () => updateViewportHeight());
+
+  // toggle button cycles between collapsed / half / full
+  mobileToggleBtn?.addEventListener("click", () => {
+    if (sheetState === SheetState.COLLAPSED) applySheetState(SheetState.HALF);
+    else if (sheetState === SheetState.HALF) applySheetState(SheetState.FULL);
+    else applySheetState(SheetState.HALF);
+  });
+
+  // drag to move sheet
+  let dragStartY = null;
+  let dragStartOffset = null;
+  let dragging = false;
+
+  function touchOnInteractive(el) {
+    return !!el.closest("input, button, select, textarea");
+  }
+
+  controlPanel.addEventListener(
+    "touchstart",
+    (e) => {
+      if (e.touches.length !== 1) return;
+      if (touchOnInteractive(e.target)) return; // don't start drag on inputs
+      dragging = true;
+      dragStartY = e.touches[0].clientY;
+      dragStartOffset = currentOffsetPx;
+    },
+    { passive: true }
+  );
+
+  controlPanel.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!dragging || e.touches.length !== 1) return;
+      const dy = e.touches[0].clientY - dragStartY;
+      let newOffset = dragStartOffset + dy;
+      const min = sheetOffsets.full;
+      const max = sheetOffsets.collapsed;
+      if (newOffset < min) newOffset = min;
+      if (newOffset > max) newOffset = max;
+      currentOffsetPx = newOffset;
+      document.documentElement.style.setProperty(
+        "--sheet-translateY",
+        newOffset + "px"
+      );
+    },
+    { passive: true }
+  );
+
+  function snapSheet() {
+    dragging = false;
+    const dFull = Math.abs(currentOffsetPx - sheetOffsets.full);
+    const dHalf = Math.abs(currentOffsetPx - sheetOffsets.half);
+    const dCol  = Math.abs(currentOffsetPx - sheetOffsets.collapsed);
+
+    let target = SheetState.HALF;
+    let best = dHalf;
+    if (dFull < best) { best = dFull; target = SheetState.FULL; }
+    if (dCol  < best) { best = dCol;  target = SheetState.COLLAPSED; }
+
+    applySheetState(target);
+  }
+
+  controlPanel.addEventListener("touchend", snapSheet);
+  controlPanel.addEventListener("touchcancel", snapSheet);
+} else {
+  // desktop: ensure CSS variables are sensible
+  document.documentElement.style.setProperty("--vh", window.innerHeight + "px");
+  document.documentElement.style.setProperty("--sheet-translateY", "0px");
+}
 
 // ---------------------------------------------------------
-// THREE.JS Setup
+// THREE Scene
 // ---------------------------------------------------------
 
 const scene = new THREE.Scene();
@@ -88,6 +206,13 @@ if (isMobile) {
   controls.panSpeed = 0.35;
 }
 
+// Optional: tap canvas to collapse sheet
+if (isMobile) {
+  renderer.domElement.addEventListener("pointerdown", () => {
+    if (sheetState !== SheetState.COLLAPSED) applySheetState(SheetState.COLLAPSED);
+  });
+}
+
 // ---------------------------------------------------------
 // Lighting
 // ---------------------------------------------------------
@@ -107,10 +232,10 @@ rim.position.set(0, 160, -120);
 scene.add(rim);
 
 // ---------------------------------------------------------
-// CONSTANTS
+// Constants & pack group
 // ---------------------------------------------------------
 
-const MM = 0.1;
+const MM  = 0.1;
 const EPS = 0.01;
 
 const packGroup = new THREE.Group();
@@ -132,9 +257,9 @@ function getFloat(el, fb) {
 
 function readParams() {
   return {
-    rollsPerLane: getInt(rollsPerLaneEl, 4),
+    rollsPerLane:    getInt(rollsPerLaneEl, 4),
     rollsPerChannel: getInt(rollsPerChannelEl, 3),
-    rollsPerLayer: getInt(rollsPerLayerEl, 2),
+    rollsPerLayer:   getInt(rollsPerLayerEl, 2),
 
     rollDiameterMm: getFloat(rollDiameterEl, 120),
     coreDiameterMm: getFloat(coreDiameterEl, 45),
@@ -144,27 +269,29 @@ function readParams() {
 }
 
 // ---------------------------------------------------------
-// Roll Texture
+// Paper bump texture
 // ---------------------------------------------------------
 
 function createPaperBumpTexture() {
   const size = 64;
-  const c = document.createElement("canvas");
-  c.width = c.height = size;
-  const ctx = c.getContext("2d");
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
 
   const img = ctx.createImageData(size, size);
   const d = img.data;
-  for (let y = 0; y < size; y++)
+
+  for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4;
       const shade = 120 + Math.random() * 18 + (y / size) * 20;
-      d[i] = d[i + 1] = d[i + 2] = shade;
-      d[i + 3] = 255;
+      d[i] = d[i+1] = d[i+2] = shade;
+      d[i+3] = 255;
     }
+  }
 
   ctx.putImageData(img, 0, 0);
-  const tex = new THREE.CanvasTexture(c);
+  const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   return tex;
 }
@@ -172,20 +299,20 @@ function createPaperBumpTexture() {
 const paperBumpTex = createPaperBumpTexture();
 
 // ---------------------------------------------------------
-// Roll geometry builder
+// Roll builder
 // ---------------------------------------------------------
 
 function buildRoll(R_outer, R_coreOuter, L) {
-  const g = new THREE.Group();
+  const group = new THREE.Group();
 
-  const paperSide = new THREE.MeshStandardMaterial({
+  const paperSideMat = new THREE.MeshStandardMaterial({
     color: 0xf7f7ff,
     roughness: 0.55,
     bumpMap: paperBumpTex,
     bumpScale: 0.03
   });
 
-  const paperEnd = new THREE.MeshStandardMaterial({
+  const paperEndMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     roughness: 0.65,
     bumpMap: paperBumpTex,
@@ -193,65 +320,73 @@ function buildRoll(R_outer, R_coreOuter, L) {
     side: THREE.DoubleSide
   });
 
-  const coreSide = new THREE.MeshStandardMaterial({
+  const coreSideMat = new THREE.MeshStandardMaterial({
     color: 0xb8925d,
     roughness: 0.75
   });
 
-  const coreInner = new THREE.MeshStandardMaterial({
+  const coreInnerMat = new THREE.MeshStandardMaterial({
     color: 0x7a7a7a,
     roughness: 0.85,
     side: THREE.BackSide
   });
 
   const coreThickness = 1.2 * MM;
-  const R_inner = Math.max(0, R_coreOuter - coreThickness);
-  const bevelDepth = 1 * MM;
+  const R_coreInner = Math.max(0, R_coreOuter - coreThickness);
+  const bevelDepth = 1.0 * MM;
 
   const sideGeom = new THREE.CylinderGeometry(
-    R_outer, R_outer, L - bevelDepth * 2, 64, 1, true
+    R_outer, R_outer,
+    L - bevelDepth * 2,
+    64, 1, true
   );
   sideGeom.rotateZ(Math.PI / 2);
-  g.add(new THREE.Mesh(sideGeom, paperSide));
+  group.add(new THREE.Mesh(sideGeom, paperSideMat));
 
   const bevelGeom = new THREE.CylinderGeometry(
-    R_outer, R_outer, bevelDepth, 48, 1, true
+    R_outer, R_outer,
+    bevelDepth,
+    48, 1, true
   );
   bevelGeom.rotateZ(Math.PI / 2);
 
-  const bf = new THREE.Mesh(bevelGeom, paperSide);
-  bf.position.x = L/2 - bevelDepth/2;
-  g.add(bf);
+  const bevelFront = new THREE.Mesh(bevelGeom, paperSideMat);
+  bevelFront.position.x = L/2 - bevelDepth/2;
+  group.add(bevelFront);
 
-  const bb = bf.clone();
-  bb.position.x = -L/2 + bevelDepth/2;
-  g.add(bb);
+  const bevelBack = bevelFront.clone();
+  bevelBack.position.x = -L/2 + bevelDepth/2;
+  group.add(bevelBack);
 
-  const endRing = new THREE.RingGeometry(R_coreOuter, R_outer, 64);
+  const endRingGeom = new THREE.RingGeometry(R_coreOuter, R_outer, 64);
 
-  const ef = new THREE.Mesh(endRing, paperEnd);
-  ef.position.x = L/2;
-  ef.rotation.y = Math.PI/2;
-  g.add(ef);
+  const endFront = new THREE.Mesh(endRingGeom, paperEndMat);
+  endFront.position.x = L/2;
+  endFront.rotation.y = Math.PI / 2;
+  group.add(endFront);
 
-  const eb = ef.clone();
-  eb.position.x = -L/2;
-  eb.rotation.y = -Math.PI/2;
-  g.add(eb);
+  const endBack = endFront.clone();
+  endBack.position.x = -L/2;
+  endBack.rotation.y = -Math.PI / 2;
+  group.add(endBack);
 
   const coreOuterGeom = new THREE.CylinderGeometry(
-    R_coreOuter, R_coreOuter, L * 0.97, 48, 1, true
+    R_coreOuter, R_coreOuter,
+    L * 0.97,
+    48, 1, true
   );
   coreOuterGeom.rotateZ(Math.PI / 2);
-  g.add(new THREE.Mesh(coreOuterGeom, coreSide));
+  group.add(new THREE.Mesh(coreOuterGeom, coreSideMat));
 
   const coreInnerGeom = new THREE.CylinderGeometry(
-    R_inner, R_inner, L * 0.97, 48, 1, true
+    R_coreInner, R_coreInner,
+    L * 0.97,
+    48, 1, true
   );
   coreInnerGeom.rotateZ(Math.PI / 2);
-  g.add(new THREE.Mesh(coreInnerGeom, coreInner));
+  group.add(new THREE.Mesh(coreInnerGeom, coreInnerMat));
 
-  return g;
+  return group;
 }
 
 // ---------------------------------------------------------
@@ -259,92 +394,96 @@ function buildRoll(R_outer, R_coreOuter, L) {
 // ---------------------------------------------------------
 
 function clearPack() {
-  while (packGroup.children.length) packGroup.remove(packGroup.children[0]);
+  while (packGroup.children.length) {
+    packGroup.remove(packGroup.children[0]);
+  }
 }
 
 function generatePack() {
   const p = readParams();
 
-  const R_outer = p.rollDiameterMm * 0.5 * MM;
-  const R_core  = p.coreDiameterMm * 0.5 * MM;
+  const R_outer = (p.rollDiameterMm / 2) * MM;
+  const R_core  = (p.coreDiameterMm / 2) * MM;
   const L       = p.rollHeightMm * MM;
 
   const D = p.rollDiameterMm * MM;
   const G = p.rollGapMm * MM;
 
-  const spacingX = L + G + EPS;
-  const spacingY = D + EPS;
-  const spacingZ = D + EPS;
+  const spacingX = L + G + EPS; // lane (X)
+  const spacingY = D + EPS;     // layer (Y)
+  const spacingZ = D + EPS;     // channel (Z)
 
-  const offX = -((p.rollsPerLane - 1) * spacingX) / 2;
-  const offY = -((p.rollsPerLayer - 1) * spacingY) / 2;
-  const offZ = -((p.rollsPerChannel - 1) * spacingZ) / 2;
+  const offsetX = -((p.rollsPerLane    - 1) * spacingX) / 2;
+  const offsetY = -((p.rollsPerLayer   - 1) * spacingY) / 2;
+  const offsetZ = -((p.rollsPerChannel - 1) * spacingZ) / 2;
 
   clearPack();
 
-  for (let y = 0; y < p.rollsPerLayer; y++)
-    for (let x = 0; x < p.rollsPerLane; x++)
-      for (let z = 0; z < p.rollsPerChannel; z++) {
+  for (let layer = 0; layer < p.rollsPerLayer; layer++) {
+    for (let lane = 0; lane < p.rollsPerLane; lane++) {
+      for (let channel = 0; channel < p.rollsPerChannel; channel++) {
         const roll = buildRoll(R_outer, R_core, L);
         roll.position.set(
-          offX + x * spacingX,
-          offY + y * spacingY,
-          offZ + z * spacingZ
+          offsetX + lane    * spacingX,
+          offsetY + layer   * spacingY,
+          offsetZ + channel * spacingZ
         );
         packGroup.add(roll);
       }
+    }
+  }
 
   const total = p.rollsPerLane * p.rollsPerChannel * p.rollsPerLayer;
   totalRollsEl.textContent = total;
-  countLabel.textContent = total + " rolls";
+  countLabel.textContent   = `${total} rolls`;
 }
 
 // ---------------------------------------------------------
-// Camera setup
+// Camera
 // ---------------------------------------------------------
 
 function setDefaultCamera() {
-  camera.position.set(110, 50, -85);
+  camera.position.set(115, 46, -81);
   controls.target.set(0, 0, 0);
   controls.update();
 }
 
 // ---------------------------------------------------------
-// PNG Export (Mobile-Safe)
+// Export PNG — filename toilet_pack_Channel_Lane_Layer.png
 // ---------------------------------------------------------
 
 function exportPNG() {
-  const prev = camDebugPanel.style.display;
+  const prevDisplay = camDebugPanel.style.display;
   camDebugPanel.style.display = "none";
 
   renderer.render(scene, camera);
-  const dataURL = renderer.domElement.toDataURL("image/png");
+  const url = renderer.domElement.toDataURL("image/png");
 
   const p = readParams();
   const filename = `toilet_pack_${p.rollsPerChannel}_${p.rollsPerLane}_${p.rollsPerLayer}.png`;
 
   const a = document.createElement("a");
-  a.href = dataURL;
+  a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 
-  camDebugPanel.style.display = prev;
+  camDebugPanel.style.display = prevDisplay;
 }
 
 // ---------------------------------------------------------
-// Debug panel update (desktop only)
+// Camera debug
 // ---------------------------------------------------------
 
 function updateCameraDebug() {
-  if (isMobile) return;
-  camXEl.textContent = camera.position.x.toFixed(1);
-  camYEl.textContent = camera.position.y.toFixed(1);
-  camZEl.textContent = camera.position.z.toFixed(1);
-  camTxEl.textContent = controls.target.x.toFixed(1);
-  camTyEl.textContent = controls.target.y.toFixed(1);
-  camTzEl.textContent = controls.target.z.toFixed(1);
+  if (!camDebugPanel || isMobile) return;
+  camXEl.textContent  = camera.position.x.toFixed(2);
+  camYEl.textContent  = camera.position.y.toFixed(2);
+  camZEl.textContent  = camera.position.z.toFixed(2);
+  camTxEl.textContent = controls.target.x.toFixed(2);
+  camTyEl.textContent = controls.target.y.toFixed(2);
+  camTzEl.textContent = controls.target.z.toFixed(2);
 }
 
 // ---------------------------------------------------------
@@ -358,14 +497,16 @@ exportPngBtn.onclick   = exportPNG;
 generatePack();
 setDefaultCamera();
 
+// handle resize
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  if (isMobile) updateViewportHeight();
 });
 
 // ---------------------------------------------------------
-// Animation loop
+// Loop
 // ---------------------------------------------------------
 
 function animate() {
